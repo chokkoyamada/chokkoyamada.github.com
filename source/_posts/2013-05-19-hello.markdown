@@ -1,0 +1,9 @@
+---
+layout: post
+title: こんにちは
+date: 2013-05-19 18:42
+comments: true
+categories: test
+---
+
+日本語の投稿テスト
