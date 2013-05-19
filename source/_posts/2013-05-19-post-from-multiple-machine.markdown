@@ -61,7 +61,7 @@ zsh: no matches found: new_post[hoge]
 ```
 
 これはOctopress関係ないのですが、rakeコマンドが通らないので一瞬悩みました。bashならこの問題はありません。
-またはrake 'new_post["hoge"]'でもいけます。
+またはrake "new_post[hoge]"でもいけます。
 
 
 Octopressレポジトリのブランチ構成
