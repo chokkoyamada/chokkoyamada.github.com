@@ -3,7 +3,7 @@ layout: post
 title: Octopressを始めました
 date: 2013-05-19 19:09
 comments: true
-categories: octopres, blog, git
+categories: octopress blog git
 ---
 
 Octopressの気に入ったところ
