@@ -4,10 +4,10 @@
 
 url: http://chokkoyamada.github.io
 title: Continuous Ops
-subtitle: DevOpsとクラウド関連のオープンソースのプロダクトを探検
+subtitle: Exploring the world of 'Infrastructure as Code'
 author: Naoyuki Yamada
 simple_search: http://google.com/search
-description:
+description: DevOpsとクラウド関連のオープンソースのプロダクトを研究して紹介します。
 
 # Default date format is "ordinal" (resulting in "July 22nd 2007")
 # You can customize the format as defined in
@@ -19,7 +19,7 @@ date_format: "ordinal"
 subscribe_rss: /atom.xml
 subscribe_email:
 # RSS feeds can list your email address if you like
-email:
+email: yamada_naoyuki@cyberagent.co.jp
 
 # ----------------------- #
 #    Jekyll & Plugins     #
@@ -54,22 +54,22 @@ default_asides: [asides/recent_posts.html, asides/github.html, asides/delicious.
 
 # Each layout uses the default asides, but they can have their own asides instead. Simply uncomment the lines below
 # and add an array with the asides you want to use.
-# blog_index_asides:
-# post_asides:
-# page_asides:
+blog_index_asides:
+post_asides:
+page_asides:
 
 # ----------------------- #
 #   3rd Party Settings    #
 # ----------------------- #
 
 # Github repositories
-github_user:
-github_repo_count: 0
+github_user: chokkoyamada
+github_repo_count: 3
 github_show_profile_link: true
 github_skip_forks: true
 
 # Twitter
-twitter_user:
+twitter_user: satully
 twitter_tweet_button: true
 
 # Google +1
@@ -94,7 +94,7 @@ disqus_short_name:
 disqus_show_comment_count: false
 
 # Google Analytics
-google_analytics_tracking_id:
+google_analytics_tracking_id: UA-41056307-1
 
 # Facebook Like
-facebook_like: false
+facebook_like: true
