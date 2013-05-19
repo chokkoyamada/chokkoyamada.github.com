@@ -52,7 +52,7 @@ export LANG=en_US.UTF-8
 
 これを`~/.zshrc`に記載します(使ってるシェルに合わせて変更してください)
 
-zshだと`rake new_post["hoge"]`とは書けず、rake new_post\["hoge"\]とエスケープする必要がある
+zshだと`rake new_post["hoge"]`とは書けず、`rake new_post\["hoge"\]`とエスケープする必要がある
 ---------------------
 
 ```
@@ -61,6 +61,7 @@ zsh: no matches found: new_post[hoge]
 ```
 
 これはOctopress関係ないのですが、rakeコマンドが通らないので一瞬悩みました。bashならこの問題はありません。
+またはrake 'new_post["hoge"]'でもいけます。
 
 
 Octopressレポジトリのブランチ構成
