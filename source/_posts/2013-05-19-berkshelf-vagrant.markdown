@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "BerkshelfとVagrantとの連携(1)"
+title: "BerkshelfとVagrantの連携(1)"
 date: 2013-05-19 23:14
 comments: true
 categories: berkshelf vagrant chef
