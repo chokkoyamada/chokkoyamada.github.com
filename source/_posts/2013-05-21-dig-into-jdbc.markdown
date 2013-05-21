@@ -16,6 +16,7 @@ Oracleの公式ドキュメントをあたってみても、全てが日本語�
 
 いまの私の仕事は運用エンジニアということもあってJavaのアプリケーションコードを自分で書いてはいないのですが、重要な場面ではコードの細部まで追って対応できることが不可欠。その中でもデータベース周りはクリティカルに効いてくることが多いので、深く理解しておきたいと思っています。
 
+
 ## Java(Servlet + JDBC(Connector-J))は相当速い
 
 最近、下記のウェブアプリケーションのベンチマークが話題になりました。
@@ -33,6 +34,7 @@ Javaでウェブアプリケーションを書くことが常にベストの選�
 
 そこで、シリーズものとして、JavaのデータベースライブラリであるJDBCについてまとまったものを書いてみたいと思います。JDBCの基礎から始めて、1台あたり1000req/secを[50msec以内で安定して返し続けるサーバー](http://www.slideshare.net/Satully/jaws2013lt-1000qps)に必要なチューニングまで、順にステップアップしながら自分自身の勉強を兼ねて書いていきます。
 
+
 ## 環境は、CentOS6 - Java7 - tomcat7 - JDBC5.1 - MySQL5.5
 
 前提となる環境ですが、まずサーバーはMac OS X 10.7のローカルで開発しつつ適宜[VagrantでCentoS 6.3](http://www.vagrantbox.es)を起動して使います。ある程度細かくベンチマークを取りたい場合はAWSで[Amazon Linux(最新版)](http://aws.amazon.com/jp/amazon-linux-ami/)を使います。
@@ -42,3 +44,7 @@ Javaはバージョン1.7で[Oracle公式のJDK](http://www.oracle.com/technetwo
 [MySQLは5.5](http://dev.mysql.com/doc/refman/5.5/en/index.html)です。
 
 まずはOracle公式やその他の入門記事に沿って簡単なウェブアプリを作っていきながらひと通りのJDBCの機能を使っていきます。
+
+[→最速ウェブアプリのためのJDBC再入門TOPへ](/special/jdbc)
+
+
