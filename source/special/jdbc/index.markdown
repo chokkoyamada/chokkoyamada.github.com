@@ -11,6 +11,9 @@ footer: true
 
 [最速ウェブアプリのためのJDBC再入門(1)](/blog/2013/05/21/dig-into-jdbc/)
 
+## 第2回
+
+[最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成](/blog/2013/05/23/dig-into-jdbc-2-create-project/)
 
 ## 参考リンク
 
@@ -34,4 +37,5 @@ http://www.atmarkit.co.jp/fjava/rensai/jdbc01/jdbc01.html
 
 * 16.2 Tuning JDBC :: Chapter 16. Tuning JDBC :: Java performance tuning :: Programming :: eTutorials.org  
 http://etutorials.org/Programming/Java+performance+tuning/Chapter+16.+Tuning+JDBC/16.2+Tuning+JDBC/
+
 
