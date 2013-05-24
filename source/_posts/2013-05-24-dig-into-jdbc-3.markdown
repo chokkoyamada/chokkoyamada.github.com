@@ -21,7 +21,7 @@ ConnectionオブジェクトからPrepareedStatementを作成し、そこから�
 Using Prepared Statements (The Java™ Tutorials > JDBC(TM) Database Access > JDBC Basics)
 http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html
 
-## INSERT文
+## INSERT文:executeUpdate()メソッドを使う:戻り値は処理レコード数
 
 ``` java
 private void insertRecord(Connection connection) throws SQLException {
@@ -43,7 +43,7 @@ INSERT/UPDATE/DELETE文の発行はexecuteUpdate()メソッドを使います。
 	疑問：JDBCにはキーワード付プレイスホルダは無いんでしょうか？
 
 
-## SELECT文
+## SELECT文:executeQuery()メソッドを使う:戻り値はResultSet
 
 ``` java
 private HashMap selectRecord(Connection connection) throws SQLException {
