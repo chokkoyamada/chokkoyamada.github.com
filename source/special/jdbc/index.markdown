@@ -19,6 +19,10 @@ footer: true
 
 [最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文](/blog/2013/05/24/dig-into-jdbc-3/)
 
+## 第4回
+
+[最速ウェブアプリのためのJDBC再入門(4) ResultSetの特性](/blog/2013/05/27/dig-into-jdbc-4/)
+
 ## 参考リンク
 
 * Trail: JDBC(TM) Database Access (The Java™ Tutorials)  
