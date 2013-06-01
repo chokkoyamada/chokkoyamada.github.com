@@ -20,23 +20,28 @@ RowSetはJavaBeansでもあります。JavaBeansとは、下記のような特�
 
 RowSetには主に下記の5種類のインタフェースがあります。
 
-### [接続維持型]
+[接続維持型]
 
 * JDBCRowSet
+
 接続型のRowSet
 
-### [接続非維持型]
+[接続非維持型]
 
 * CachedRowSet 
+
 データをDBから取得後、オブジェクト内にキャッシュし、接続を切断する。
 
 * WebRowSet
+
 CachedRowSetにXMLの拡張がついている
 
 * JoinRowSet
+
 WebRowSetの拡張で、別テーブル同士のJOINができる
 
 * FilteredRowSet
+
 WebRowSetの拡張で、データのフィルタリング機能を持つ
 
 この中で、使いそうだと感じたCachedRowSetとJoinRowSetを試してみます。
@@ -199,12 +204,12 @@ mysql> SELECT * FROM SUPPLIERS;
 
 ``` sql
 SELECT c.COF_NAME
-FROM COFFEES AS c, SUPPLIERS s
+FROM COFFEES AS c, SUPPLIERS AS s
 WHERE c.SUP_ID = s.SUP_ID
 AND SUP_NAME = "Acme, Inc."
 ```
 
-などとやるのがごく普通ですが、これを各テーブルのRowSetをJoinRowSetを使ってJavaコード内でジョインさせることができます。
+などとやるのが普通ですが、これを各テーブルのRowSetをJoinRowSetを使ってJavaコード内でジョインさせることができます。
 
 ``` java
 coffees = new CachedRowSetImpl();
