@@ -31,6 +31,10 @@ footer: true
 
 [最速ウェブアプリのためのJDBC再入門(6) トランザクション](/blog/2013/05/29/dig-into-jdbc-6/)
 
+## 第7回
+
+[最速ウェブアプリのためのJDBC再入門(7) RowSet Objects](/blog/2013/05/31/dig-into-jdbc-7-rowset-object/)
+
 ## 参考リンク
 
 * Trail: JDBC(TM) Database Access (The Java™ Tutorials)  

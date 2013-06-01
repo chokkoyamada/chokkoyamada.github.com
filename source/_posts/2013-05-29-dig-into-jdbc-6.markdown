@@ -184,3 +184,5 @@ http://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A9%E3%83%B3%E3%82%B6%E3%82%AF%E3%82
 MySQL5 分離レベル　～ transaction_isolation | QuickKnowLedge
 http://www.s-quad.com/wordpress/?p=956
 
+
+[→最速ウェブアプリのためのJDBC再入門TOPへ](/special/jdbc)
