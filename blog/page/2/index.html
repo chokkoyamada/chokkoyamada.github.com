@@ -9,9 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="JSP &amp; Servletを使った基本的なプロジェクトを作成 まずは基本的なプロジェクトを作成しました。
-mavenのプロジェクト構成に沿った形にして、JSPとServletを連携させた最低限の構成です。 ソースはこちらです。　
-chokkoyamada/DigIntoJDBC at &hellip;">
+  <meta name="description" content="SQL発行の基本的な手順 前回はデータベースに接続し、そのまま切断しただけでしたが、今回はWriteとReadの処理を1回ずつやってみます。 ソースはこちらです。
+https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +78,157 @@ chokkoyamada/DigIntoJDBC at &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/24/dig-into-jdbc-3/">最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-24T09:05:00+09:00" pubdate data-updated="true">May 24<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>SQL発行の基本的な手順</h2>
+
+<p>前回はデータベースに接続し、そのまま切断しただけでしたが、今回はWriteとReadの処理を1回ずつやってみます。</p>
+
+<p>ソースはこちらです。
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3</a></p>
+
+<p>基本的にはPHPのPDOやPerlのPythonのMySQLdbなどとクエリの発行の構造は同じで、PrepareStatementというオブジェクトを使います。</p>
+
+<p>ConnectionオブジェクトからPrepareedStatementを作成し、そこからクエリを実行、という流れです。</p>
+
+<p>参考：
+Using Prepared Statements (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html</a></p>
+
+<h2>INSERT文:executeUpdate()メソッドを使う:戻り値は処理レコード数</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">insertRecord</span><span class="o">(</span><span class="n">Connection</span> <span class="n">connection</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">PreparedStatement</span> <span class="n">preparedStatement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;INSERT INTO address (name, address, tel, email) VALUES(?, ?, ?, ?)&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;name&quot;</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;address&quot;</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;tel&quot;</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">4</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;email&quot;</span><span class="o">));</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>connection.prepareStatement()メソッド内でSQLを記述し、&#8221;?&ldquo;をプレイスホルダとして使います。&rdquo;?&ldquo;の部分はsetXXXX()メソッド(XXXXの部分は型が入る)のなかで番号に対応する形で値を入れています。</p>
+
+<p>INSERT/UPDATE/DELETE文の発行はexecuteUpdate()メソッドを使います。</p>
+
+<pre><code>疑問：JDBCにはキーワード付プレイスホルダは無いんでしょうか？
+</code></pre>
+
+<h2>SELECT文:executeQuery()メソッドを使う:戻り値はResultSet</h2>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="n">HashMap</span> <span class="nf">selectRecord</span><span class="o">(</span><span class="n">Connection</span> <span class="n">connection</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">PreparedStatement</span> <span class="n">preparedStatement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;SELECT * FROM address LIMIT 1&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">ResultSet</span> <span class="n">resultSet</span> <span class="o">=</span> <span class="n">preparedStatement</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;</span> <span class="n">map</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
+</span><span class='line'>  <span class="k">if</span><span class="o">(</span><span class="n">resultSet</span><span class="o">.</span><span class="na">next</span><span class="o">()){</span>
+</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;name-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;name&quot;</span><span class="o">));</span>
+</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;address-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;address&quot;</span><span class="o">));</span>
+</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;tel-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;tel&quot;</span><span class="o">));</span>
+</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;email-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;email&quot;</span><span class="o">));</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span><span class='line'>  <span class="k">return</span> <span class="n">map</span><span class="o">;</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>SELECT文も、connection.prepareStatement()メソッド内でSQLを記述します。</p>
+
+<p>SELECT文の実行には、executeQuery()メソッドを使います。このメソッドはResultSetオブジェクトが返るので、resultSet.next()でループして結果を取得します。</p>
+
+<p>今回はPreparedStatementを使いましたが、下記のように単純なStatementオブジェクトで記述することもできます。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">Statement</span> <span class="n">statement</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'><span class="n">String</span> <span class="n">query</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM address LIMIT 1&quot;</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">statement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">ResultSet</span> <span class="n">resultSet</span> <span class="o">=</span> <span class="n">statement</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
+</span><span class='line'><span class="o">(</span><span class="err">以下略</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Statementとその派生クラスには3種類あります。</p>
+
+<ul>
+<li>Statement         パラメータを持たない単純なSQLの実行</li>
+<li>PreparedStatement SQLをプリコンパイルして実行する</li>
+<li>CallableStatement プロシージャを呼び出すときに使う</li>
+</ul>
+
+
+<p>StatementよりPreparedStaementのほうが高速な場合が多いので、SELECT/INSERT/UPDATE/DELETE文のSQLの実行にはPreparedStatementを使うとおぼえておいて基本的に間違いないと思います。</p>
+
+<p>StatementオブジェクトはGCによって自動的にクローズされますが、明示的にclose()を呼んでおくのが良いようです。今回は明示的にclose()を呼んでいます。</p>
+
+<p>ひとまずシンプルにINSERTとSELECTを行なってみました。
+次回はSELECTの最適化・高速化という観点から、ResultSetオブジェクトの扱いについて詳しくみてみます。</p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -880,6 +1030,10 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
       </li>
     
@@ -893,10 +1047,6 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
     
       <li class="post">
         <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
       </li>
     
   </ul>

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[Category: tutorial | Continuous Ops]]></title>
-  <link href="http://chokkoyamada.github.io/blog/categories/tutorial/atom.xml" rel="self"/>
+  <title><![CDATA[Category: linux, | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/linux/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
   <updated>2013-11-18T21:00:51+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
@@ -251,52 +251,6 @@ Apache2 is running (pid 2595).
 </code></p>
 
 <p>いきなり勝手が違っててもやもやしてきたわけですが、続く。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(1)]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2013/05/21/dig-into-jdbc/"/>
-    <updated>2013-05-21T21:40:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2013/05/21/dig-into-jdbc</id>
-    <content type="html"><![CDATA[<h2>Javaの記事はどれも古い！</h2>
-
-<p>Javaを仕事で書けるようになるためにあらためて勉強しているのですが、Javaの記事をぐぐってみると古い記事があたることが多いです。</p>
-
-<p>Javaは後方互換性に優れているので10年前の記事でも余裕で参考になるのですが、それでも例えば2003年の記事を読んだだけだと現在の状況にどこまで適用してよい話なのか不安が残ります。</p>
-
-<p>Oracleの公式ドキュメントをあたってみても、全てが日本語訳されているわけではなく、重い腰あげて読み込まないとなという気持ちがします。</p>
-
-<p>いまの私の仕事は運用エンジニアということもあってJavaのアプリケーションコードを自分で書いてはいないのですが、重要な場面ではコードの細部まで追って対応できることが不可欠。その中でもデータベース周りはクリティカルに効いてくることが多いので、深く理解しておきたいと思っています。</p>
-
-<h2>Java(Servlet + JDBC(Connector-J))は相当速い</h2>
-
-<p>最近、下記のウェブアプリケーションのベンチマークが話題になりました。</p>
-
-<p><a href="http://www.techempower.com/benchmarks/">http://www.techempower.com/benchmarks/</a></p>
-
-<p>これを見ると、JavaのServletは常に上位にいます。
-私自身の最近の仕事の経験からしても、Servlet+JDBCの組み合わせはかなりのスループットが出ます。チューニングしていくたびにどんどん速くなってきたし、まだ速くする余地がかなりあるんじゃないかと思っています。</p>
-
-<p>ベンチマークのソースを見たのですが、DataSourceのオプションなどはかなり参考になります。</p>
-
-<p><a href="https://github.com/TechEmpower/FrameworkBenchmarks/">https://github.com/TechEmpower/FrameworkBenchmarks/</a></p>
-
-<p>Javaでウェブアプリケーションを書くことが常にベストの選択とは思いませんが、レスポンスタイムとスループットを安定して出したい場合の選択としてはかなりいい線行ってると思います。これをもっと極めていきたいです。</p>
-
-<p>そこで、シリーズものとして、JavaのデータベースライブラリであるJDBCについてまとまったものを書いてみたいと思います。JDBCの基礎から始めて、1台あたり1000req/secを<a href="http://www.slideshare.net/Satully/jaws2013lt-1000qps">50msec以内で安定して返し続けるサーバー</a>に必要なチューニングまで、順にステップアップしながら自分自身の勉強を兼ねて書いていきます。</p>
-
-<h2>環境は、CentOS6 &ndash; Java7 &ndash; tomcat7 &ndash; JDBC5.1 &ndash; MySQL5.5</h2>
-
-<p>前提となる環境ですが、まずサーバーはMac OS X 10.7のローカルで開発しつつ適宜<a href="http://www.vagrantbox.es">VagrantでCentoS 6.3</a>を起動して使います。ある程度細かくベンチマークを取りたい場合はAWSで<a href="http://aws.amazon.com/jp/amazon-linux-ami/">Amazon Linux(最新版)</a>を使います。</p>
-
-<p>Javaはバージョン1.7で<a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html">Oracle公式のJDK</a>を使います。
-アプリケーションサーバーは<a href="http://tomcat.apache.org/tomcat-7.0-doc/">tomcatのバージョン7</a>、JDBCドライバは<a href="http://mvnrepository.com/artifact/mysql/mysql-connector-java">mysql-connector-java</a>の5.1系です。
-<a href="http://dev.mysql.com/doc/refman/5.5/en/index.html">MySQLは5.5</a>です。</p>
-
-<p>まずはOracle公式やその他の入門記事に沿って簡単なウェブアプリを作っていきながらひと通りのJDBCの機能を使っていきます。</p>
-
-<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
 ]]></content>
   </entry>
   

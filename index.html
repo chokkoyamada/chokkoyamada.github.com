@@ -9,8 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="Web Api Hackathon Vol.3 2013/11/17に行われた、Web Api Hackathonに行ってきました。私は初参加でしたが、もう3回目で、とりあえずWeb Api叩いて何か作ろうというざっくりしたテーマで行うハッカソン形式のイベントです。
-Mashup &hellip;">
+  <meta name="description" content="Ubuntuを使うシチュエーション Ubuntuに入門したいCentOSユーザーというのは私自身のことです。 最近、Ubuntu Linuxを使いこなせるようになりたいと思う場面が多いです。
+普段はCentOSまたはAmazon Linuxを使っていて、 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,409 @@ Mashup &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-11-18T20:12:00+09:00" pubdate data-updated="true">Nov 18<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Ubuntuを使うシチュエーション</h2>
+
+<p>Ubuntuに入門したいCentOSユーザーというのは私自身のことです。</p>
+
+<p>最近、Ubuntu Linuxを使いこなせるようになりたいと思う場面が多いです。
+普段はCentOSまたはAmazon Linuxを使っていて、Debian系のUbuntuはおそらく全く使えないということはないのでしょうが、なんとなくハードルを感じてしまうところがあります。</p>
+
+<p>前職では最初Ubuntuを使っているシステムがいくつかあったので、厳密にいうと私が最初にログインしてちょっと触ったLinuxはUbuntuでした。
+ただそのときは実質的に何もいじらなかった(ログインしたことあるだけ)ので、ソーシャルゲームを開発することになって、CentOSを本気で触り始めたのが最初です。
+それ以来、CentOSばかり使っています。</p>
+
+<p>CentOSを勉強し始めたときは、自分でキューブ型PCを買ってきて、自分の部屋においてセットアップしました。
+確かCentOSのイメージを落としてきてDVD-Rか何かに焼いて、それを使ってセットアップした記憶があります。</p>
+
+<p>今Linuxのサーバーを新しく作ろうと思った場合、VirtualBox(Vagrant)やDockerがあるから楽です。
+そもそもVagrantやDockerをより深く知りたいがためにUbuntuをやろうと思ったという動機もあります。
+chefも（最近少なくなってきましたが）Ubuntuのほうがやりやすい部分があったり、Tizenも現状ではUbuntu前提ですよね。</p>
+
+<p>というわけで、Ubuntuも抵抗感なく普通に使えるほうがよさげなのできちんとさわってみることにしました。　</p>
+
+<h2>バージョンの違いなど</h2>
+
+<p>CentOSだと、いま選ぶのはだいたい5か6系だと思います。
+6.4が最新。5.10もStableバージョンで<a href="http://wiki.centos.org/Download">2017年までメンテナンスされる予定</a>ですが、今なら6.4を選んで問題はないでしょう。</p>
+
+<p>Ubuntuのほうですが、<a href="http://www.ubuntulinux.jp/ubuntu">このへんを見るに</a>、12か13系あたりが選択肢になりそうです。
+13系はまだ安定バージョンが無いようなので、2017年までサポート予定の12.04(コードネーム：Precise Pangolin)を選んでみることにします。</p>
+
+<p>というわけで、それ用のvagrant boxを追加します。(<a href="http://www.vagrantbox.es">http://www.vagrantbox.es</a> より)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ vagrant box add ubuntu12 http://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box</span></code></pre></td></tr></table></div></figure>
+
+
+<p>CentOSでは32bitのものをi386、64bitのものをx86_64と呼んでいましたが、Ubuntuでは64bitのほうをamd64と呼ぶようですね。　</p>
+
+<p>vagrantでとりあえず起動してみます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Welcome to Ubuntu 12.04.3 LTS (GNU/Linux 3.2.0-56-generic x86_64)
+</span><span class='line'>
+</span><span class='line'> * Documentation:  https://help.ubuntu.com/
+</span><span class='line'>
+</span><span class='line'>  System information as of Mon Nov 18 11:44:43 UTC 2013
+</span><span class='line'>
+</span><span class='line'>  System load:  0.17              Processes:           69
+</span><span class='line'>  Usage of /:   2.7% of 39.37GB   Users logged in:     0
+</span><span class='line'>  Memory usage: 30%               IP address for eth0: 10.0.2.15
+</span><span class='line'>  Swap usage:   0%                IP address for eth1: 192.168.33.11
+</span><span class='line'>
+</span><span class='line'>  Graph this data and manage this system at https://landscape.canonical.com/
+</span><span class='line'>
+</span><span class='line'>  Get cloud support with Ubuntu Advantage Cloud Guest:
+</span><span class='line'>    http://www.ubuntu.com/business/services/cloud
+</span><span class='line'>
+</span><span class='line'>  Use Juju to deploy your cloud instances and workloads:
+</span><span class='line'>    https://juju.ubuntu.com/#cloud-precise
+</span><span class='line'>
+</span><span class='line'>0 packages can be updated.
+</span><span class='line'>0 updates are security updates.
+</span><span class='line'>
+</span><span class='line'>_____________________________________________________________________
+</span><span class='line'>WARNING! Your environment specifies an invalid locale.
+</span><span class='line'> This can affect your user experience significantly, including the
+</span><span class='line'> ability to manage packages. You may install the locales by running:
+</span><span class='line'>
+</span><span class='line'>   sudo apt-get install language-pack-ja
+</span><span class='line'>     or
+</span><span class='line'>   sudo locale-gen ja_JP.UTF-8
+</span><span class='line'>
+</span><span class='line'>To see all available language packs, run:
+</span><span class='line'>   apt-cache search "^language-pack-[a-z][a-z]$"
+</span><span class='line'>To disable this message for all users, run:
+</span><span class='line'>   sudo touch /var/lib/cloud/instance/locale-check.skip
+</span><span class='line'>_____________________________________________________________________
+</span><span class='line'>
+</span><span class='line'>vagrant@vagrant-ubuntu-precise-64:~$
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>いきなり親切なメッセージがいろいろ出てきました。</p>
+
+<p>何かパッケージ入れてみようと思い、apacheはCentOSだとhttpdですがUbuntuはapache2というくらいは知っていたのですがあえてapt-get install httpdとやってみると、</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# apt-get install httpd
+</span><span class='line'>Reading package lists... Done
+</span><span class='line'>Building dependency tree
+</span><span class='line'>Reading state information... Done
+</span><span class='line'>Package httpd is a virtual package provided by:
+</span><span class='line'>  nginx-naxsi 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-light 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-full 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-extras 1.1.19-1ubuntu0.4
+</span><span class='line'>  apache2-mpm-itk 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-worker 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-prefork 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-event 2.2.22-1ubuntu1.4
+</span><span class='line'>  yaws 1.92-1
+</span><span class='line'>  webfs 1.21+ds1-8
+</span><span class='line'>  tntnet 2.0+dfsg1-2
+</span><span class='line'>  ocsigen 1.3.4-2build4
+</span><span class='line'>  monkey 0.9.3-1ubuntu1
+</span><span class='line'>  mini-httpd 1.19-9.2build1
+</span><span class='line'>  micro-httpd 20051212-13
+</span><span class='line'>  mathopd 1.5p6-1.1
+</span><span class='line'>  lighttpd 1.4.28-2ubuntu4
+</span><span class='line'>  ebhttpd 1:1.0.dfsg.1-4.2build1
+</span><span class='line'>  cherokee 1.2.101-1
+</span><span class='line'>  bozohttpd 20100920-1
+</span><span class='line'>  boa 0.94.14rc21-3.1
+</span><span class='line'>  aolserver4-daemon 4.5.1-15
+</span><span class='line'>  aolserver4-core 4.5.1-15
+</span><span class='line'>You should explicitly select one to install.
+</span><span class='line'>
+</span><span class='line'>E: Package 'httpd' has no installation candidate</span></code></pre></td></tr></table></div></figure>
+
+
+<p>けっこう気が利く感じです。</p>
+
+<p>apache2を入れてみます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# apt-get install apache2
+</span><span class='line'>Reading package lists... Done
+</span><span class='line'>Building dependency tree
+</span><span class='line'>Reading state information... Done
+</span><span class='line'>The following extra packages will be installed:
+</span><span class='line'>  apache2-mpm-worker apache2-utils apache2.2-bin apache2.2-common libapr1
+</span><span class='line'>  libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap ssl-cert
+</span><span class='line'>Suggested packages:
+</span><span class='line'>  apache2-doc apache2-suexec apache2-suexec-custom openssl-blacklist
+</span><span class='line'>The following NEW packages will be installed:
+</span><span class='line'>  apache2 apache2-mpm-worker apache2-utils apache2.2-bin apache2.2-common
+</span><span class='line'>  libapr1 libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap ssl-cert
+</span><span class='line'>0 upgraded, 10 newly installed, 0 to remove and 0 not upgraded.
+</span><span class='line'>Need to get 1,855 kB of archives.
+</span><span class='line'>After this operation, 5,681 kB of additional disk space will be used.
+</span><span class='line'>Do you want to continue [Y/n]? y
+</span><span class='line'>Get:1 http://archive.ubuntu.com/ubuntu/ precise/main libapr1 amd64 1.4.6-1 [89.6 kB]
+</span><span class='line'>Get:2 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1 amd64 1.3.12+dfsg-3 [74.6 kB]
+</span><span class='line'>Get:3 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1-dbd-sqlite3 amd64 1.3.12+dfsg-3 [10.4 kB]
+</span><span class='line'>Get:4 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1-ldap amd64 1.3.12+dfsg-3 [8,044 B]
+</span><span class='line'>Get:5 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2.2-bin amd64 2.2.22-1ubuntu1.4 [1,340 kB]
+</span><span class='line'>Get:6 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2-utils amd64 2.2.22-1ubuntu1.4 [90.1 kB]
+</span><span class='line'>Get:7 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2.2-common amd64 2.2.22-1ubuntu1.4 [226 kB]
+</span><span class='line'>Get:8 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2-mpm-worker amd64 2.2.22-1ubuntu1.4 [2,284 B]
+</span><span class='line'>Get:9 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2 amd64 2.2.22-1ubuntu1.4 [1,492 B]
+</span><span class='line'>Get:10 http://archive.ubuntu.com/ubuntu/ precise-updates/main ssl-cert all 1.0.28ubuntu0.1 [12.3 kB]
+</span><span class='line'>Fetched 1,855 kB in 7s (236 kB/s)
+</span><span class='line'>Preconfiguring packages ...
+</span><span class='line'>Selecting previously unselected package libapr1.
+</span><span class='line'>(Reading database ... 61149 files and directories currently installed.)
+</span><span class='line'>Unpacking libapr1 (from .../libapr1_1.4.6-1_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1.
+</span><span class='line'>Unpacking libaprutil1 (from .../libaprutil1_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1-dbd-sqlite3.
+</span><span class='line'>Unpacking libaprutil1-dbd-sqlite3 (from .../libaprutil1-dbd-sqlite3_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1-ldap.
+</span><span class='line'>Unpacking libaprutil1-ldap (from .../libaprutil1-ldap_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.2-bin.
+</span><span class='line'>Unpacking apache2.2-bin (from .../apache2.2-bin_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2-utils.
+</span><span class='line'>Unpacking apache2-utils (from .../apache2-utils_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.2-common.
+</span><span class='line'>Unpacking apache2.2-common (from .../apache2.2-common_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2-mpm-worker.
+</span><span class='line'>Unpacking apache2-mpm-worker (from .../apache2-mpm-worker_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.
+</span><span class='line'>Unpacking apache2 (from .../apache2_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package ssl-cert.
+</span><span class='line'>Unpacking ssl-cert (from .../ssl-cert_1.0.28ubuntu0.1_all.deb) ...
+</span><span class='line'>Processing triggers for man-db ...
+</span><span class='line'>Processing triggers for ureadahead ...
+</span><span class='line'>Processing triggers for ufw ...
+</span><span class='line'>Setting up libapr1 (1.4.6-1) ...
+</span><span class='line'>Setting up libaprutil1 (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up libaprutil1-dbd-sqlite3 (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up libaprutil1-ldap (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up apache2.2-bin (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up apache2-utils (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up apache2.2-common (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Enabling site default.
+</span><span class='line'>Enabling module alias.
+</span><span class='line'>Enabling module autoindex.
+</span><span class='line'>Enabling module dir.
+</span><span class='line'>Enabling module env.
+</span><span class='line'>Enabling module mime.
+</span><span class='line'>Enabling module negotiation.
+</span><span class='line'>Enabling module setenvif.
+</span><span class='line'>Enabling module status.
+</span><span class='line'>Enabling module auth_basic.
+</span><span class='line'>Enabling module deflate.
+</span><span class='line'>Enabling module authz_default.
+</span><span class='line'>Enabling module authz_user.
+</span><span class='line'>Enabling module authz_groupfile.
+</span><span class='line'>Enabling module authn_file.
+</span><span class='line'>Enabling module authz_host.
+</span><span class='line'>Enabling module reqtimeout.
+</span><span class='line'>Setting up apache2-mpm-worker (2.2.22-1ubuntu1.4) ...
+</span><span class='line'> * Starting web server apache2                                                                                              apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1 for ServerName
+</span><span class='line'>                                                                                                                     [ OK ]
+</span><span class='line'>Setting up apache2 (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up ssl-cert (1.0.28ubuntu0.1) ...
+</span><span class='line'>Processing triggers for libc-bin ...
+</span><span class='line'>ldconfig deferred processing now taking place
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>どうやらworkerのmpmだけがインストールされ、さらにapacheが勝手に起動しました(；´Д｀)
+パッケージ入れただけなのに。。。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# /etc/init.d/apache2 status
+</span><span class='line'>Apache2 is running (pid 2595).</span></code></pre></td></tr></table></div></figure>
+
+
+<p>いきなり勝手が違っててもやもやしてきたわけですが、続く。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -2045,157 +2448,6 @@ JDBCのトランザクション分離レベルは使用しているデータベ�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/24/dig-into-jdbc-3/">最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-24T09:05:00+09:00" pubdate data-updated="true">May 24<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>SQL発行の基本的な手順</h2>
-
-<p>前回はデータベースに接続し、そのまま切断しただけでしたが、今回はWriteとReadの処理を1回ずつやってみます。</p>
-
-<p>ソースはこちらです。
-<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3</a></p>
-
-<p>基本的にはPHPのPDOやPerlのPythonのMySQLdbなどとクエリの発行の構造は同じで、PrepareStatementというオブジェクトを使います。</p>
-
-<p>ConnectionオブジェクトからPrepareedStatementを作成し、そこからクエリを実行、という流れです。</p>
-
-<p>参考：
-Using Prepared Statements (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
-<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html</a></p>
-
-<h2>INSERT文:executeUpdate()メソッドを使う:戻り値は処理レコード数</h2>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="kt">void</span> <span class="nf">insertRecord</span><span class="o">(</span><span class="n">Connection</span> <span class="n">connection</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
-</span><span class='line'>  <span class="n">PreparedStatement</span> <span class="n">preparedStatement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;INSERT INTO address (name, address, tel, email) VALUES(?, ?, ?, ?)&quot;</span><span class="o">);</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;name&quot;</span><span class="o">));</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">2</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;address&quot;</span><span class="o">));</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">3</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;tel&quot;</span><span class="o">));</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">setString</span><span class="o">(</span><span class="mi">4</span><span class="o">,</span> <span class="n">getParameter</span><span class="o">(</span><span class="s">&quot;email&quot;</span><span class="o">));</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-</span><span class='line'><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>connection.prepareStatement()メソッド内でSQLを記述し、&#8221;?&ldquo;をプレイスホルダとして使います。&rdquo;?&ldquo;の部分はsetXXXX()メソッド(XXXXの部分は型が入る)のなかで番号に対応する形で値を入れています。</p>
-
-<p>INSERT/UPDATE/DELETE文の発行はexecuteUpdate()メソッドを使います。</p>
-
-<pre><code>疑問：JDBCにはキーワード付プレイスホルダは無いんでしょうか？
-</code></pre>
-
-<h2>SELECT文:executeQuery()メソッドを使う:戻り値はResultSet</h2>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">private</span> <span class="n">HashMap</span> <span class="nf">selectRecord</span><span class="o">(</span><span class="n">Connection</span> <span class="n">connection</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
-</span><span class='line'>  <span class="n">PreparedStatement</span> <span class="n">preparedStatement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;SELECT * FROM address LIMIT 1&quot;</span><span class="o">);</span>
-</span><span class='line'>  <span class="n">ResultSet</span> <span class="n">resultSet</span> <span class="o">=</span> <span class="n">preparedStatement</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">();</span>
-</span><span class='line'>  <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">String</span><span class="o">&gt;</span> <span class="n">map</span> <span class="o">=</span> <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;&gt;();</span>
-</span><span class='line'>  <span class="k">if</span><span class="o">(</span><span class="n">resultSet</span><span class="o">.</span><span class="na">next</span><span class="o">()){</span>
-</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;name-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;name&quot;</span><span class="o">));</span>
-</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;address-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;address&quot;</span><span class="o">));</span>
-</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;tel-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;tel&quot;</span><span class="o">));</span>
-</span><span class='line'>      <span class="n">map</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="s">&quot;email-1&quot;</span><span class="o">,</span> <span class="n">resultSet</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;email&quot;</span><span class="o">));</span>
-</span><span class='line'>  <span class="o">}</span>
-</span><span class='line'>  <span class="n">preparedStatement</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
-</span><span class='line'>  <span class="k">return</span> <span class="n">map</span><span class="o">;</span>
-</span><span class='line'><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>SELECT文も、connection.prepareStatement()メソッド内でSQLを記述します。</p>
-
-<p>SELECT文の実行には、executeQuery()メソッドを使います。このメソッドはResultSetオブジェクトが返るので、resultSet.next()でループして結果を取得します。</p>
-
-<p>今回はPreparedStatementを使いましたが、下記のように単純なStatementオブジェクトで記述することもできます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">Statement</span> <span class="n">statement</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
-</span><span class='line'><span class="n">String</span> <span class="n">query</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM address LIMIT 1&quot;</span><span class="o">;</span>
-</span><span class='line'>
-</span><span class='line'><span class="k">try</span> <span class="o">{</span>
-</span><span class='line'>  <span class="n">statement</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
-</span><span class='line'>  <span class="n">ResultSet</span> <span class="n">resultSet</span> <span class="o">=</span> <span class="n">statement</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="n">query</span><span class="o">);</span>
-</span><span class='line'><span class="o">(</span><span class="err">以下略</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Statementとその派生クラスには3種類あります。</p>
-
-<ul>
-<li>Statement         パラメータを持たない単純なSQLの実行</li>
-<li>PreparedStatement SQLをプリコンパイルして実行する</li>
-<li>CallableStatement プロシージャを呼び出すときに使う</li>
-</ul>
-
-
-<p>StatementよりPreparedStaementのほうが高速な場合が多いので、SELECT/INSERT/UPDATE/DELETE文のSQLの実行にはPreparedStatementを使うとおぼえておいて基本的に間違いないと思います。</p>
-
-<p>StatementオブジェクトはGCによって自動的にクローズされますが、明示的にclose()を呼んでおくのが良いようです。今回は明示的にclose()を呼んでいます。</p>
-
-<p>ひとまずシンプルにINSERTとSELECTを行なってみました。
-次回はSELECTの最適化・高速化という観点から、ResultSetオブジェクトの扱いについて詳しくみてみます。</p>
-
-<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -2211,6 +2463,10 @@ Using Prepared Statements (The Java™ Tutorials > JDBC&trade; Database Access >
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
       </li>
     
@@ -2224,10 +2480,6 @@ Using Prepared Statements (The Java™ Tutorials > JDBC&trade; Database Access >
     
       <li class="post">
         <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
       </li>
     
   </ul>

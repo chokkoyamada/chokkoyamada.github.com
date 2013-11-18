@@ -1,0 +1,637 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>CentOSユーザーのためのUbuntu Linux入門(1) - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="Ubuntuを使うシチュエーション Ubuntuに入門したいCentOSユーザーというのは私自身のことです。 最近、Ubuntu Linuxを使いこなせるようになりたいと思う場面が多いです。
+普段はCentOSまたはAmazon Linuxを使っていて、 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">CentOSユーザーのためのUbuntu Linux入門(1)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-11-18T20:12:00+09:00" pubdate data-updated="true">Nov 18<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>Ubuntuを使うシチュエーション</h2>
+
+<p>Ubuntuに入門したいCentOSユーザーというのは私自身のことです。</p>
+
+<p>最近、Ubuntu Linuxを使いこなせるようになりたいと思う場面が多いです。
+普段はCentOSまたはAmazon Linuxを使っていて、Debian系のUbuntuはおそらく全く使えないということはないのでしょうが、なんとなくハードルを感じてしまうところがあります。</p>
+
+<p>前職では最初Ubuntuを使っているシステムがいくつかあったので、厳密にいうと私が最初にログインしてちょっと触ったLinuxはUbuntuでした。
+ただそのときは実質的に何もいじらなかった(ログインしたことあるだけ)ので、ソーシャルゲームを開発することになって、CentOSを本気で触り始めたのが最初です。
+それ以来、CentOSばかり使っています。</p>
+
+<p>CentOSを勉強し始めたときは、自分でキューブ型PCを買ってきて、自分の部屋においてセットアップしました。
+確かCentOSのイメージを落としてきてDVD-Rか何かに焼いて、それを使ってセットアップした記憶があります。</p>
+
+<p>今Linuxのサーバーを新しく作ろうと思った場合、VirtualBox(Vagrant)やDockerがあるから楽です。
+そもそもVagrantやDockerをより深く知りたいがためにUbuntuをやろうと思ったという動機もあります。
+chefも（最近少なくなってきましたが）Ubuntuのほうがやりやすい部分があったり、Tizenも現状ではUbuntu前提ですよね。</p>
+
+<p>というわけで、Ubuntuも抵抗感なく普通に使えるほうがよさげなのできちんとさわってみることにしました。　</p>
+
+<h2>バージョンの違いなど</h2>
+
+<p>CentOSだと、いま選ぶのはだいたい5か6系だと思います。
+6.4が最新。5.10もStableバージョンで<a href="http://wiki.centos.org/Download">2017年までメンテナンスされる予定</a>ですが、今なら6.4を選んで問題はないでしょう。</p>
+
+<p>Ubuntuのほうですが、<a href="http://www.ubuntulinux.jp/ubuntu">このへんを見るに</a>、12か13系あたりが選択肢になりそうです。
+13系はまだ安定バージョンが無いようなので、2017年までサポート予定の12.04(コードネーム：Precise Pangolin)を選んでみることにします。</p>
+
+<p>というわけで、それ用のvagrant boxを追加します。(<a href="http://www.vagrantbox.es">http://www.vagrantbox.es</a> より)</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ vagrant box add ubuntu12 http://cloud-images.ubuntu.com/vagrant/precise/current/precise-server-cloudimg-amd64-vagrant-disk1.box</span></code></pre></td></tr></table></div></figure>
+
+
+<p>CentOSでは32bitのものをi386、64bitのものをx86_64と呼んでいましたが、Ubuntuでは64bitのほうをamd64と呼ぶようですね。　</p>
+
+<p>vagrantでとりあえず起動してみます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Welcome to Ubuntu 12.04.3 LTS (GNU/Linux 3.2.0-56-generic x86_64)
+</span><span class='line'>
+</span><span class='line'> * Documentation:  https://help.ubuntu.com/
+</span><span class='line'>
+</span><span class='line'>  System information as of Mon Nov 18 11:44:43 UTC 2013
+</span><span class='line'>
+</span><span class='line'>  System load:  0.17              Processes:           69
+</span><span class='line'>  Usage of /:   2.7% of 39.37GB   Users logged in:     0
+</span><span class='line'>  Memory usage: 30%               IP address for eth0: 10.0.2.15
+</span><span class='line'>  Swap usage:   0%                IP address for eth1: 192.168.33.11
+</span><span class='line'>
+</span><span class='line'>  Graph this data and manage this system at https://landscape.canonical.com/
+</span><span class='line'>
+</span><span class='line'>  Get cloud support with Ubuntu Advantage Cloud Guest:
+</span><span class='line'>    http://www.ubuntu.com/business/services/cloud
+</span><span class='line'>
+</span><span class='line'>  Use Juju to deploy your cloud instances and workloads:
+</span><span class='line'>    https://juju.ubuntu.com/#cloud-precise
+</span><span class='line'>
+</span><span class='line'>0 packages can be updated.
+</span><span class='line'>0 updates are security updates.
+</span><span class='line'>
+</span><span class='line'>_____________________________________________________________________
+</span><span class='line'>WARNING! Your environment specifies an invalid locale.
+</span><span class='line'> This can affect your user experience significantly, including the
+</span><span class='line'> ability to manage packages. You may install the locales by running:
+</span><span class='line'>
+</span><span class='line'>   sudo apt-get install language-pack-ja
+</span><span class='line'>     or
+</span><span class='line'>   sudo locale-gen ja_JP.UTF-8
+</span><span class='line'>
+</span><span class='line'>To see all available language packs, run:
+</span><span class='line'>   apt-cache search "^language-pack-[a-z][a-z]$"
+</span><span class='line'>To disable this message for all users, run:
+</span><span class='line'>   sudo touch /var/lib/cloud/instance/locale-check.skip
+</span><span class='line'>_____________________________________________________________________
+</span><span class='line'>
+</span><span class='line'>vagrant@vagrant-ubuntu-precise-64:~$
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>いきなり親切なメッセージがいろいろ出てきました。</p>
+
+<p>何かパッケージ入れてみようと思い、apacheはCentOSだとhttpdですがUbuntuはapache2というくらいは知っていたのですがあえてapt-get install httpdとやってみると、</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# apt-get install httpd
+</span><span class='line'>Reading package lists... Done
+</span><span class='line'>Building dependency tree
+</span><span class='line'>Reading state information... Done
+</span><span class='line'>Package httpd is a virtual package provided by:
+</span><span class='line'>  nginx-naxsi 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-light 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-full 1.1.19-1ubuntu0.4
+</span><span class='line'>  nginx-extras 1.1.19-1ubuntu0.4
+</span><span class='line'>  apache2-mpm-itk 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-worker 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-prefork 2.2.22-1ubuntu1.4
+</span><span class='line'>  apache2-mpm-event 2.2.22-1ubuntu1.4
+</span><span class='line'>  yaws 1.92-1
+</span><span class='line'>  webfs 1.21+ds1-8
+</span><span class='line'>  tntnet 2.0+dfsg1-2
+</span><span class='line'>  ocsigen 1.3.4-2build4
+</span><span class='line'>  monkey 0.9.3-1ubuntu1
+</span><span class='line'>  mini-httpd 1.19-9.2build1
+</span><span class='line'>  micro-httpd 20051212-13
+</span><span class='line'>  mathopd 1.5p6-1.1
+</span><span class='line'>  lighttpd 1.4.28-2ubuntu4
+</span><span class='line'>  ebhttpd 1:1.0.dfsg.1-4.2build1
+</span><span class='line'>  cherokee 1.2.101-1
+</span><span class='line'>  bozohttpd 20100920-1
+</span><span class='line'>  boa 0.94.14rc21-3.1
+</span><span class='line'>  aolserver4-daemon 4.5.1-15
+</span><span class='line'>  aolserver4-core 4.5.1-15
+</span><span class='line'>You should explicitly select one to install.
+</span><span class='line'>
+</span><span class='line'>E: Package 'httpd' has no installation candidate</span></code></pre></td></tr></table></div></figure>
+
+
+<p>けっこう気が利く感じです。</p>
+
+<p>apache2を入れてみます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# apt-get install apache2
+</span><span class='line'>Reading package lists... Done
+</span><span class='line'>Building dependency tree
+</span><span class='line'>Reading state information... Done
+</span><span class='line'>The following extra packages will be installed:
+</span><span class='line'>  apache2-mpm-worker apache2-utils apache2.2-bin apache2.2-common libapr1
+</span><span class='line'>  libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap ssl-cert
+</span><span class='line'>Suggested packages:
+</span><span class='line'>  apache2-doc apache2-suexec apache2-suexec-custom openssl-blacklist
+</span><span class='line'>The following NEW packages will be installed:
+</span><span class='line'>  apache2 apache2-mpm-worker apache2-utils apache2.2-bin apache2.2-common
+</span><span class='line'>  libapr1 libaprutil1 libaprutil1-dbd-sqlite3 libaprutil1-ldap ssl-cert
+</span><span class='line'>0 upgraded, 10 newly installed, 0 to remove and 0 not upgraded.
+</span><span class='line'>Need to get 1,855 kB of archives.
+</span><span class='line'>After this operation, 5,681 kB of additional disk space will be used.
+</span><span class='line'>Do you want to continue [Y/n]? y
+</span><span class='line'>Get:1 http://archive.ubuntu.com/ubuntu/ precise/main libapr1 amd64 1.4.6-1 [89.6 kB]
+</span><span class='line'>Get:2 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1 amd64 1.3.12+dfsg-3 [74.6 kB]
+</span><span class='line'>Get:3 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1-dbd-sqlite3 amd64 1.3.12+dfsg-3 [10.4 kB]
+</span><span class='line'>Get:4 http://archive.ubuntu.com/ubuntu/ precise/main libaprutil1-ldap amd64 1.3.12+dfsg-3 [8,044 B]
+</span><span class='line'>Get:5 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2.2-bin amd64 2.2.22-1ubuntu1.4 [1,340 kB]
+</span><span class='line'>Get:6 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2-utils amd64 2.2.22-1ubuntu1.4 [90.1 kB]
+</span><span class='line'>Get:7 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2.2-common amd64 2.2.22-1ubuntu1.4 [226 kB]
+</span><span class='line'>Get:8 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2-mpm-worker amd64 2.2.22-1ubuntu1.4 [2,284 B]
+</span><span class='line'>Get:9 http://archive.ubuntu.com/ubuntu/ precise-updates/main apache2 amd64 2.2.22-1ubuntu1.4 [1,492 B]
+</span><span class='line'>Get:10 http://archive.ubuntu.com/ubuntu/ precise-updates/main ssl-cert all 1.0.28ubuntu0.1 [12.3 kB]
+</span><span class='line'>Fetched 1,855 kB in 7s (236 kB/s)
+</span><span class='line'>Preconfiguring packages ...
+</span><span class='line'>Selecting previously unselected package libapr1.
+</span><span class='line'>(Reading database ... 61149 files and directories currently installed.)
+</span><span class='line'>Unpacking libapr1 (from .../libapr1_1.4.6-1_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1.
+</span><span class='line'>Unpacking libaprutil1 (from .../libaprutil1_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1-dbd-sqlite3.
+</span><span class='line'>Unpacking libaprutil1-dbd-sqlite3 (from .../libaprutil1-dbd-sqlite3_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package libaprutil1-ldap.
+</span><span class='line'>Unpacking libaprutil1-ldap (from .../libaprutil1-ldap_1.3.12+dfsg-3_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.2-bin.
+</span><span class='line'>Unpacking apache2.2-bin (from .../apache2.2-bin_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2-utils.
+</span><span class='line'>Unpacking apache2-utils (from .../apache2-utils_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.2-common.
+</span><span class='line'>Unpacking apache2.2-common (from .../apache2.2-common_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2-mpm-worker.
+</span><span class='line'>Unpacking apache2-mpm-worker (from .../apache2-mpm-worker_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package apache2.
+</span><span class='line'>Unpacking apache2 (from .../apache2_2.2.22-1ubuntu1.4_amd64.deb) ...
+</span><span class='line'>Selecting previously unselected package ssl-cert.
+</span><span class='line'>Unpacking ssl-cert (from .../ssl-cert_1.0.28ubuntu0.1_all.deb) ...
+</span><span class='line'>Processing triggers for man-db ...
+</span><span class='line'>Processing triggers for ureadahead ...
+</span><span class='line'>Processing triggers for ufw ...
+</span><span class='line'>Setting up libapr1 (1.4.6-1) ...
+</span><span class='line'>Setting up libaprutil1 (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up libaprutil1-dbd-sqlite3 (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up libaprutil1-ldap (1.3.12+dfsg-3) ...
+</span><span class='line'>Setting up apache2.2-bin (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up apache2-utils (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up apache2.2-common (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Enabling site default.
+</span><span class='line'>Enabling module alias.
+</span><span class='line'>Enabling module autoindex.
+</span><span class='line'>Enabling module dir.
+</span><span class='line'>Enabling module env.
+</span><span class='line'>Enabling module mime.
+</span><span class='line'>Enabling module negotiation.
+</span><span class='line'>Enabling module setenvif.
+</span><span class='line'>Enabling module status.
+</span><span class='line'>Enabling module auth_basic.
+</span><span class='line'>Enabling module deflate.
+</span><span class='line'>Enabling module authz_default.
+</span><span class='line'>Enabling module authz_user.
+</span><span class='line'>Enabling module authz_groupfile.
+</span><span class='line'>Enabling module authn_file.
+</span><span class='line'>Enabling module authz_host.
+</span><span class='line'>Enabling module reqtimeout.
+</span><span class='line'>Setting up apache2-mpm-worker (2.2.22-1ubuntu1.4) ...
+</span><span class='line'> * Starting web server apache2                                                                                              apache2: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1 for ServerName
+</span><span class='line'>                                                                                                                     [ OK ]
+</span><span class='line'>Setting up apache2 (2.2.22-1ubuntu1.4) ...
+</span><span class='line'>Setting up ssl-cert (1.0.28ubuntu0.1) ...
+</span><span class='line'>Processing triggers for libc-bin ...
+</span><span class='line'>ldconfig deferred processing now taking place
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>どうやらworkerのmpmだけがインストールされ、さらにapacheが勝手に起動しました(；´Д｀)
+パッケージ入れただけなのに。。。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>root@vagrant-ubuntu-precise-64:~# /etc/init.d/apache2 status
+</span><span class='line'>Apache2 is running (pid 2595).</span></code></pre></td></tr></table></div></figure>
+
+
+<p>いきなり勝手が違っててもやもやしてきたわけですが、続く。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-11-18T20:12:00+09:00" pubdate data-updated="true">Nov 18<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/centos/'>centos,</a>, <a class='category' href='/blog/categories/linux/'>linux,</a>, <a class='category' href='/blog/categories/tutorial/'>tutorial</a>, <a class='category' href='/blog/categories/ubuntu/'>ubuntu,</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/" title="Previous Post: Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました">&laquo; Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
