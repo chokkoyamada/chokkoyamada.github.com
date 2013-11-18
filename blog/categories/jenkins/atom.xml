@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: jenkins | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/jenkins/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/06/18/techhills6th-jenkins/"/>
+    <updated>2013-06-18T20:24:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/06/18/techhills6th-jenkins</id>
+    <content type="html"><![CDATA[<p>2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。</p>
+
+<p>第6回テックヒルズ本日開催！【Ustream配信決定】<br/>
+Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
+<a href="http://atnd.org/events/39910">http://atnd.org/events/39910</a></p>
+
+<p>参加者700人超という平日の技術勉強会としてはかなりの規模で、この形式でやるのは6回目らしいのですが私は今回が初参加でした。</p>
+
+<p>セッションは2つの部屋に分かれて行われました。私が参加したセッションについて紹介します。</p>
+
+<h2>検索技術基盤開発のための結合テスト環境の自動化(楽天：萩原さん)</h2>
+
+<p>検索基盤の開発にJenkinsを活用して、結合テストを自動化している話。単体テスト・結合テストの前にSmoke Testというフェーズがあり、早期発見可能なバグを検知する仕組みがあるというのが特徴的でした。Smoke Testの中身についてもう少し詳しく聞きたかった。。</p>
+
+<p>結合テストについては15時間のビルドを分割して全て1時間以内に終わるようにして50台のテストサーバーで自動テストを回しているとのこと。それなりに大規模にJenkinsを活用している事例といえますが、ここまで緻密に自動テスト環境を構築するのは楽天内の検索システムのような大規模開発ならではという印象を持ちました。</p>
+
+<h2>CROOZにおけるJenkins活用事例(CROOZ: 鈴木さん)</h2>
+
+<p>コーディング規約に反したコードや除外ファイル(本番にデプロイしたくないファイル)の更新漏れを検知するのに活用しているののこと。自動テストに使うというより、その前段階で開発者へのフィードバックループを作るために活用しているという感じのようです。</p>
+
+<p>そもそもソーシャルゲーム開発におけるテスト事情って最近どうなんでしょうか？　私が2年前にソーシャルゲーム開発をしているころは単体・結合テストを書いているという会社はあまり見かけなかったです。最近だと独自フレームワークが完成の域に達している会社も多いでしょうし、テストをするのは珍しくなくなっているのかもしれません。</p>
+
+<h2>ぼくとJenkinsおじさんとの300日戦争(mixi: 五嶋さん)</h2>
+
+<p>テスト数25万件、実行に45分かかっていたという、膨大なテストを高速化（時間短縮）するための奮闘の記録。</p>
+
+<p>「モジュール読み込み時間を削る」「WriteするまでFixtureで生成したDBをキャッシュして使いまわす」という方法が最初に紹介されましたが、十分な効果が得られず苦労していたという話の後で、結局、最近Jenkinsスレーブ48台が使えるようになって8分でテスト終わるようになりました！という富豪的解決策で対応というオチになって、苦笑してしまいました。確かにリソースは大事ですね。</p>
+
+<h2>アメーバピグとJenkinsと私 (サイバーエージェント: 丸山さん)</h2>
+
+<p>2011年当時のアメーバピグはテストがまともになく、ci環境がないのでとりあえずJenkins導入してみたところ、数千個のFindbugs警告、160個は深刻、でパンドラの箱を開けてしまった＼(^o^)／というところから話が始まりました。そういう状況から2年間かけて徐々にci環境の整備を行なってきたとのこと。</p>
+
+<p>後半では、Jenkinsを使ってバッチ処理をしているというのを興味深く聞きました。cronやSpringBatchではジョブの成否や実行時間の把握が複雑になりがちで、私もバッチ管理の有効な方法を探している途中だったからです。SpringBatchを捨てて自作のシンプルなフレームワークへの置き換え＋Jenkinsでのバッチ管理というのは一つの手法として合理的だと納得しました。</p>
+
+<p>あと今回初めて知りましたが、アメーバピグは本番環境が2系統あって一週間ごとに切り替えて運用しているとのことです。</p>
+]]></content>
+  </entry>
+  
+</feed>

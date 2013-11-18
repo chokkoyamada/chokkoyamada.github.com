@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: git | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/git/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Octopressを始めました]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/19/post-from-multiple-machine/"/>
+    <updated>2013-05-19T19:09:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/19/post-from-multiple-machine</id>
+    <content type="html"><![CDATA[<h2>Octopressの気に入ったところ</h2>
+
+<p>GitHub Pagesを使ってOctopressを始めてみました。ずっとwordpressを使っていたのですが、次の3点が気にいって使ってみようと思い立ちました。</p>
+
+<ul>
+<li>静的HTMLでサイトが生成される</li>
+<li>Git(Hub)ベースなので履歴が残る</li>
+<li>Pushしておけば、必ずGitHubにバックアップがある</li>
+<li>vimとmarkdownで書ける</li>
+</ul>
+
+
+<p>静的に生成できればS3やCloudFrontに置くことで高速化もできるし、サーバーに負荷がかかりにくいです。</p>
+
+<p>WordpressはMySQLに記事データが入っていましたが、Octopressは生のテキストデータとしてデータが残っています。Markdownのテキストデータとしてデータが残っているというのは気分的に安心感があります。
+HTML以外の他のデータフォーマットへのエクスポートもしやすいかと思いました。</p>
+
+<p>最近、仕事でもプライベートでもGitHubをよく使っているので、セットアップも手こずらないだろうという見込みもありました。</p>
+
+<p>vimで書けてそのままアップできるのも気持ちいいです。Markdownはvimとの相性も良いです。<a href="https://github.com/plasticboy/vim-markdown">vim-markdown</a> を組み合わせて使っています。</p>
+
+<h2>日本語を使うところではまる</h2>
+
+<p>日本語をタイトルや本文に入れて投稿しようとしたところ、
+```
+➜  octopress git:(source) be rake generate</p>
+
+<h2>Generating Site with Jekyll</h2>
+
+<p>identical source/stylesheets/screen.css
+Configuration from /Users/caaios5/Documents/git/octopress/_config.yml
+Building site: source &ndash;> public</p>
+
+<h2>ERROR: YOUR SITE COULD NOT BE BUILT:</h2>
+
+<p>&ldquo;\xE3&rdquo; on US-ASCII in /Users/caaios5/Documents/git/octopress/source/_posts/2013-05-19-hello.markdown
+```</p>
+
+<p>という感じでなぜか記事をgenerateできず。文字コードの問題だと分かったので、ググって環境変数を設定したらいけました。</p>
+
+<p><code>
+export LC_CTYPE=en_US.UTF-8
+export LANG=en_US.UTF-8
+</code></p>
+
+<p>これを<code>~/.zshrc</code>に記載します(使ってるシェルに合わせて変更してください)</p>
+
+<h2>zshだと<code>rake new_post["hoge"]</code>とは書けず、<code>rake new_post\["hoge"\]</code>とエスケープする必要がある</h2>
+
+<p><code>
+➜  octopress git:(source) be rake new_post["hoge"]
+zsh: no matches found: new_post[hoge]
+</code></p>
+
+<p>これはOctopress関係ないのですが、rakeコマンドが通らないので一瞬悩みました。bashならこの問題はありません。
+またはrake &ldquo;new_post[hoge]"でもいけます。</p>
+
+<h2>Octopressレポジトリのブランチ構成</h2>
+
+<p>Octopressのレポジトリは、"master"と"source"という2つのブランチを使いわけた構成になっています。</p>
+
+<ul>
+<li>master</li>
+</ul>
+
+
+<p><code>rake generate</code>で生成された静的なHTMLコンテンツが置かれている。通常こちらを直接更新はしない。</p>
+
+<ul>
+<li>source</li>
+</ul>
+
+
+<p>普段の作業ディレクトリ。<code>rake new_post['hoge']</code>などを実行して投稿を作るのもこちら。</p>
+
+<p>「masterが公開する部分」、「sourceが管理側」といったイメージです。</p>
+
+<p>なので、<code>rake deploy</code>では実質的にmasterがpushされます(実際、Rakefileの中はそのようになっています)、<code>git push origin source</code>で管理側をpushしておけば、<code>git clone</code>して<code>git checkout source</code>で別のマシンから作業の続きができます。</p>
+
+<p>参考：</p>
+
+<p><a href="http://tokkonopapa.github.io/blog/2011/12/30/octopress-on-github-and-bitbucket/">http://tokkonopapa.github.io/blog/2011/12/30/octopress-on-github-and-bitbucket/</a></p>
+
+<p>記事を書き始めるのにはここが参考になりました。</p>
+
+<p><a href="http://blog.zerosharp.com/clone-your-octopress-to-blog-from-two-places/">http://blog.zerosharp.com/clone-your-octopress-to-blog-from-two-places/</a></p>
+
+<p>文字コードの問題は環境変数を設定すると解決するのはここを読んで気づきました。</p>
+]]></content>
+  </entry>
+  
+</feed>

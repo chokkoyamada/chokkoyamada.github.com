@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: vagrant | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/vagrant/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[BerkshelfとVagrantの連携(2)]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install/"/>
+    <updated>2013-05-20T22:02:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install</id>
+    <content type="html"><![CDATA[<h2>Berkshelf+Vagrantで簡単にGraphiteをインストール</h2>
+
+<p>昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、Graphiteをchefのcookbookを使ってインストールしてみます。</p>
+
+<ul>
+<li>Graphite</li>
+</ul>
+
+
+<p><a href="http://graphite.wikidot.com">http://graphite.wikidot.com</a></p>
+
+<p><a href="http://graphite.readthedocs.org/en/0.9.10/">http://graphite.readthedocs.org/en/0.9.10/</a></p>
+
+<p>Graphiteはデータのリアルタイム集積・グラフ可視化ツールです。フロントのGUIはDjangoで、そこでデータを集計加工してみたりグラフを描画したりができます。バックエンドはcarbonというデーモンで、ここに向かってネットワーク経由でデータを送信します。・・・というところまでがドキュメントを読んだ限りの概要で、まだ使ったことはありません。とりあえずインストールします。</p>
+
+<h2>GitHub上のcookbookをFork</h2>
+
+<p>ウェブ上にGraphiteをインストールするレシピが無いかと探してみました。Ubuntu向けのものは公式であるのですが、CentOS/Amazon Linuxで使えるものではなかったので、GitHubを探したところ、ありました。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos">https://github.com/taos/graphite-chef-centos</a></p>
+
+<p>しかし、このcookbookのままだとepelのrpmが404になってしまって動作しませんでした。
+そこで自分のところにforkして、修正して使います。</p>
+
+<p><a href="https://github.com/chokkoyamada/graphite-chef-centos">https://github.com/chokkoyamada/graphite-chef-centos</a></p>
+
+<p>修正したのはepelのRPMのURLだけで動きました。</p>
+
+<h2>metadataのバージョン番号がポイント</h2>
+
+<p>Berksfileを次のように書きます。</p>
+
+<p><code>
+cookbook 'graphite-chef-centos', git: 'git://github.com/chokkoyamada/graphite-chef-centos.git'
+</code></p>
+
+<p>ここではまりどころだったのは、その前にオリジナルの作者であるtaos氏のレポジトリのURLを指定していたのを自分のレポジトリのURLに書き換えたのですが、その後vagrant up/reloadしてもキャッシュが効いていたのか、cookbookがうまく更新できなくて悩みました。</p>
+
+<p>metadataがポイントなんですね。<a href="https://github.com/chokkoyamada/graphite-chef-centos/blob/master/metadata.rb#L5">バージョン番号を更新</a> したら新しいものが入りました。gemと同じ要領ですね。</p>
+
+<p>今回のVagrantfileはこちらです。ローカル(Mac)からウェブを見るためにポートフォワーディングを設定している以外は前回と同じです。</p>
+
+<p>``` ruby
+Vagrant.configure(&ldquo;2&rdquo;) do |config|
+  config.berkshelf.enabled = true
+  config.berkshelf.berksfile_path = &ldquo;Berksfile&rdquo;
+  config.vm.box = &ldquo;centos63chef&rdquo;</p>
+
+<p>  config.vm.network :forwarded_port, guest: 80, host: 8080</p>
+
+<p>  config.vm.synced_folder &ldquo;data&rdquo;, &ldquo;/vagrant_data&rdquo;</p>
+
+<p>  config.vm.provision :chef_solo do |chef|</p>
+
+<pre><code>chef.add_recipe "graphite-chef-centos"
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>あとはvagrantを走らせるだけ。</p>
+
+<p><code>
+vagrant up
+</code></p>
+
+<p><code>
+vagrant ssh
+sudo service iptables stop
+</code>
+でiptablesを止めてから、[<a href="http://localhost:8080/">http://localhost:8080/</a>] にアクセスします。</p>
+
+<p><img src="/images/2013-05-20-graphite.png"></p>
+
+<p>Graphiteがこんなに簡単にインストールできました! コマンド1個1個打っていくよりはるかに楽です。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
+
+<p>次はGraphiteを使い倒していきます。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[BerkshelfとVagrantの連携(1)]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/19/berkshelf-vagrant/"/>
+    <updated>2013-05-19T23:14:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/19/berkshelf-vagrant</id>
+    <content type="html"><![CDATA[<h2>他所にあるchefのcookbookを気軽にインポートしたい</h2>
+
+<p>chefのcookbookを依存管理してくれるBerkshelfと、Mac上のVM実行補助のライブラリであるVagrantとの連携を試してみます。</p>
+
+<p>私はAWSでchef-soloを使ったインフラの管理をしているのですが、開発の全てをEC2上でやろうとするとどうしてもインスタンスの起動・削除にお金がかさんでしまうので、開発はローカル環境で進めたいと思っています。</p>
+
+<p>AWS上にproduction環境を置く場合、どうしてもAWS上でのテスト環境やステージング環境のようなものは必要になってきますが、その前段階の開発作業はローカルのLinux VM上でできないかと試行錯誤してきました。</p>
+
+<p>その解決策として使ってきたのがVagrantです。VagrantはVirtual Boxをコマンドライン＋設定ファイルで扱えるようにしたツールで、chefやpuppetとの連携機能も備えているため、chefのcookbookのテストを気軽に試すことができます。Vagrantは起動も速いので、開発とテストにもってこいです。</p>
+
+<p>さらに最近やりたいと感じていたこととして、「GitHub上にある他ユーザーのcookbookをインポートして気軽に使いたい」というのがありました。</p>
+
+<p>例えばGraphiteやZabbixやHadoopなどといったような、セットアップが多少面倒くさいツールをセットアップしたいときに、他のユーザーのcookbookを使ってさくっとprovisionできたら非常に楽だと思ったのです。cookbookにはセットアップ手順が整理されて書いてあるので、必要なものを素早く把握することもでき一石二鳥です。</p>
+
+<p>そのニーズを満たしてくれるライブラリとして、Berkshelfというのが便利、と同僚の神から教えてもらったので試してみました。今回は必要最低限の設定を行います。</p>
+
+<h2>VagrantとBerkshelfのセットアップ</h2>
+
+<p>BerkshelfとVagrantの連携機能を使うためには公式サイトにある最新版を使う必要がありました。現時点で私が設定した環境のバージョンは次の通りです。</p>
+
+<p>```
+ᐅ ruby -v
+ruby 1.9.3p194 (2012-04-20 revision 35410) [x86_64-darwin11.4.0]</p>
+
+<p>ᐅ vagrant &mdash;version
+Vagrant version 1.2.2</p>
+
+<p>ᐅ berks &mdash;version
+Berkshelf (1.4.4)
+```</p>
+
+<p>RubyはRVMを使っています。
+Vagrantはgemだと古いバージョンだったので、公式サイトのdmgファイルからインストールしました。Berkshelfは<code>gem install berkshelf</code>でインストールしました。</p>
+
+<p>Vagrantのboxは<a href="http://www.vagrantbox.es">CentOS 6.3 x86_64 + Chef 10.14.2 + VirtualBox 4.1.22 (with guest additions)</a>を使いました。</p>
+
+<p>まずBerksfileを設定します。<a href="http://berkshelf.com">Berkshelfの公式サイトの例</a>にあるサンプルを試してみます。</p>
+
+<p>``` ruby
+site :opscode</p>
+
+<p>cookbook &lsquo;mysql&rsquo;
+cookbook &lsquo;nginx&rsquo;, &lsquo;~> 0.101.5&rsquo;
+```</p>
+
+<p>この場合、<a href="https://github.com/opscode-cookbooks/mysql">MySQLはこれ</a>と<a href="https://github.com/opscode-cookbooks/nginx">Nginxはこれ</a>が使われるみたいです。</p>
+
+<p>次にVagrantfileを書きます。こちらは<code>vagrant init centos63chef</code>で自動生成してそこからカスタマイズしていきます。</p>
+
+<p>``` ruby
+Vagrant.configure(&ldquo;2&rdquo;) do |config|
+  config.vm.box = &ldquo;centos63chef"<br/>
+  config.vm.synced_folder "data&rdquo;, &ldquo;/vagrant_data&rdquo;</p>
+
+<p>  config.berkshelf.enabled = true
+  config.berkshelf.berksfile_path = &ldquo;Berksfile&rdquo;</p>
+
+<p>  config.vm.provision :chef_solo do |chef|</p>
+
+<pre><code> chef.add_recipe "mysql"
+ chef.add_recipe "nginx"
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>これで動きました。</p>
+
+<p>あとは<code>vagrnat up</code>でVMの作成とプロビジョンが行われます。今回は、mysqlクライアントとnginxパッケージとデーモンがインストールされたはずです。</p>
+
+<h2>serverspecで確認</h2>
+
+<p>serverspecを使ってテストしてみます。serverspecは今回の主題ではないので詳細はすっ飛ばしますがmysqlとnginxがvagrantサーバーにきちんと入っているかどうかを調べています。</p>
+
+<p>``` ruby spec/vagrant/nginx_spec.rb
+require &lsquo;spec_helper&rsquo;</p>
+
+<p>describe package(&lsquo;nginx&rsquo;) do <br/>
+  it { should be_installed }
+end</p>
+
+<p>describe service(&lsquo;nginx&rsquo;) do <br/>
+  it { should be_running }   <br/>
+end</p>
+
+<p>describe port(80) do
+  it { should be_listening }
+end</p>
+
+<p>describe file(&lsquo;/etc/nginx/nginx.conf&rsquo;) do
+  it { should be_file }
+  it { should contain &ldquo;pid&rdquo; }
+end</p>
+
+<p>```</p>
+
+<p>``` ruby spec/vagrant/mysql_spec.rb
+require &lsquo;spec_helper&rsquo;</p>
+
+<p>describe package(&lsquo;mysql&rsquo;) do <br/>
+  it { should be_installed }
+end
+```</p>
+
+<p>```
+ᐅ rake spec
+/Users/xxxx/.rvm/rubies/ruby-1.9.3-p194/bin/ruby -S rspec spec/vagrant/mysql_spec.rb spec/vagrant/nginx_spec.rb
+&hellip;&hellip;</p>
+
+<p>Finished in 0.18744 seconds
+6 examples, 0 failures
+```</p>
+
+<p>serverspecのテストが通りました。</p>
+
+<p>これで外部のcookbookを使う準備ができました。次回は他のもうちょっと複雑なcookbookを試したり、パラメータを渡したりといったことが問題なくできるかどうかをやっていきます。　</p>
+]]></content>
+  </entry>
+  
+</feed>

@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: 
+
+Sitemap: http://chokkoyamada.github.io/sitemap.xml 

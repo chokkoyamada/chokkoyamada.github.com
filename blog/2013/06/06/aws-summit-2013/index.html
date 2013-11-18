@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="AWS Summit Tokyo 2013の中から2セッション、まとめておきたいと思います。1つめはRedshiftに関するセッションです。 セッション紹介 ｜ AWS Summit Tokyo 2013 「Amazon Redshiftが切り開くクラウド・データウェアハウス」 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-06T13:25:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>AWS Summit Tokyo 2013の中から2セッション、まとめておきたいと思います。1つめはRedshiftに関するセッションです。</p>
+
+<p>セッション紹介 ｜ AWS Summit Tokyo 2013  <br/>
+<a href="http://www.awssummittokyo.com/session.html#Tech-05">「Amazon Redshiftが切り開くクラウド・データウェアハウス」</a></p>
+
+<p>私の勤務する<a href="http://aws.amazon.com/jp/about-aws/whats-new/2013/6/5/Amazon-Redshift-and-High-Storage-Instance-in-Tokyo-Region/">AMoAdでは、RedShiftがUS-Eastリージョンで使えるようになって以来注目していて、実際に本番環境で使ってきました。</a> 私は中心的にRedshiftをじっくり使ってきたわけではないのですが、運用担当として興味深く聴講しました。</p>
+
+<h2>Redshiftの概要</h2>
+
+<pre><code>エンタープライズシステムにおける活用ノウハウ
+
+Amazon Redshiftの取り組みについて
+
+クラウド型データウェアハウス
+オンプレ環境におけるデータウェアハウスの課題
+・初期投資
+・運用管理
+・成長予測・費用対効果
+
+install backupなどのルーチンワークをAWSに任せて、codingとperformance tuningに割く時間を増やせる
+
+RDS, DynamoDBなどのオンライントランザクション→ EMR, S3→Redshift
+
+カラムナ型データベース
+列が多いケースにはパフォーマンスの向上が見られやすい
+
+* Leader Node クエリのパース・分析をしてC++コードを生成してcompute nodeに投げる
+
+* compute nodes ここを増やすことで器を大きくできる
+
+    1.6PBまで拡張可能
+
+JDBCのPostgreSQLドライバを使える
+
+AmazonS3かDynamoDBからの並列ロード
+
+S3への自動バックアップ・増分バックアップ・オンデマンドのバックアップ　
+リサイズする場合：新しいクラスタをバックグラウンドでプロビジョニング
+ノード数×時間単価の課金　
+
+日本ではデータウェアハウスとOLTPの中間的な使い方をしている場合が多い　
+</code></pre>
+
+<p>まずはRedshiftの概要の説明です。Redshiftはすでに基本的なところは調べて実際に使ってきたのでほとんどが既知の事項でした。</p>
+
+<p>エンタープライズ向けを主に意識しているセッションだけあって聞き慣れない単語がいくつかありましたが・・・そもそもRedshiftは個人で気軽に試すには若干値が張る（最小構成でも1ノードを1ヶ月フルで使うと$0.85 x 24hour x 30dayで6万円程度）</p>
+
+<pre><code>## Redshiftの性能は？
+
+他と比較するとSEの寿命が縮まるので・・・
+
+### 巨大テーブルからの検索処理
+
+1.5TBくらいのデータの検索結果  500億件
+8XL 2node 43.5sec
+8XL 4node 27.8sec
+8XL 8node 19.8sec
+
+線形に性能が向上しているのに驚いた
+
+### データロードのスピード 500億件
+
+8XL 2node 2:54sec
+8XL 4node 1:37
+8XL 8node 0:46
+
+### 1.2億件の検索結果
+
+8XL 2node 3.30 sec
+8XL 4node 1.40 sec
+8XL 8node 1.80 sec
+
+## バッチ処理は？
+
+EMRとの比較
+1.5TB, 500億件
+
+EMR 29min
+Redshift 17min
+
+EMR 71min
+Redshift 5min
+
+チューニングのポイント
+キー(index)
+
+distribution keyに応じてスライスに配置される
+sort keyをもとにレコードがソートされる
+
+### チューニング効果
+* 1.2億件
+
+指定無しは1.8秒
+指定ありは1秒
+
+* バッチ処理
+
+指定あり：24min
+指定無し：16min
+
+sort keyを入れるとロードは遅くなるので注意
+
+### コスト:w
+128coe 960gb 128tb storage
+構築費はほぼ不要、維持管理のSEも不要、センター費用は不要
+
+### 注意点は？
+不得意なデータ形式もある
+EMRで前処理
+
+簡単につくれてしまうため、統制のきいていないシステムの乱立に注意
+
+### まとめ
+
+* 性能は線形にスケール
+* バッチ処理も得意
+* チューニングは新しい概念で
+* 利用料課金はメリット大
+* 注意点もある
+</code></pre>
+
+<p>次は野村総研の方からの検証結果報告です。データのSELECTが早いのは確かだと思います。ただ、セッションでも言及されているように、「不得意なデータ形式もある」ということで、結局のところRedshiftのポテンシャルをフルに引き出して使いこなすには、時間とともに溜まるノウハウの蓄積が欠かせない気がします。</p>
+
+<p>データのロードについても同様で、<a href="http://www.hapyrus.com/products/flydata-for-redshift">FlyData for Amazon Redshift</a>というサービスがあるくらい、Redshiftに適切な速度で要領よくデータをアップロードするのは難しいという印象です。このへんも各所で検証が進むにつれて、うまいやり方というのが見いだされてくるのかなと思います。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-06T13:25:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/aws/'>aws</a>, <a class='category' href='/blog/categories/event/'>event</a>, <a class='category' href='/blog/categories/redshift/'>redshift</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/05/31/dig-into-jdbc-7-rowset-object/" title="Previous Post: 最速ウェブアプリのためのJDBC再入門(7) RowSet Objects">&laquo; 最速ウェブアプリのためのJDBC再入門(7) RowSet Objects</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/06/06/aws-summit-2013-freakout/" title="Next Post: AWS Summit Tokyo 2013(2) FreakOut - 50ms or dieの世界">AWS Summit Tokyo 2013(2) FreakOut - 50ms or dieの世界 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

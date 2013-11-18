@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: servlet | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/servlet/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/23/dig-into-jdbc-2-create-project/"/>
+    <updated>2013-05-23T08:48:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/23/dig-into-jdbc-2-create-project</id>
+    <content type="html"><![CDATA[<h2>JSP &amp; Servletを使った基本的なプロジェクトを作成</h2>
+
+<p>まずは基本的なプロジェクトを作成しました。
+mavenのプロジェクト構成に沿った形にして、JSPとServletを連携させた最低限の構成です。</p>
+
+<p>ソースはこちらです。　
+chokkoyamada/DigIntoJDBC at chapter2 · GitHub
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2</a></p>
+
+<p><a href="http://www.amazon.co.jp/%E7%8B%AC%E7%BF%92Java%E3%82%B5%E3%83%BC%E3%83%90%E3%82%B5%E3%82%A4%E3%83%89%E7%B7%A8-%E7%AC%AC2%E7%89%88-%E5%B1%B1%E7%94%B0-%E7%A5%A5%E5%AF%9B/dp/4798130494">「独習Java サーバーサイド編 第2版」</a> を教科書的に使いながら作りました。
+ただ、書籍の中ではJSPの中で直接データベースに接続しているので、それはJavaのクラスファイルのほうへ外出ししました。</p>
+
+<p><code>
+├── lib
+├── pom.xml
+├── src
+│   └── main
+│       ├── java
+│       │   └── com
+│       │       └── kirishikistudios
+│       │           └── continuousops
+│       │               └── digintojdbc
+│       │                   └── Chapter2.java
+│       ├── resources
+│       └── webapp
+│           ├── META-INF
+│           │   └── context.xml
+│           ├── WEB-INF
+│           │   └── web.xml
+│           └── chapter2
+│               └── index.jsp
+</code></p>
+
+<p>MySQLサーバーはlocalhostに立てて、ユーザー名jdbcuser、パスワードjdbcuserで作ってcontinuousopsというデータベースを作成してあります。</p>
+
+<h2>context.xmlの置き場所と意味</h2>
+
+<p>上記の中で、context.xmlはどういうルールで書いてどこに置けばよいのかが分かりませんでした。
+まとめると下記のようなことのようです。</p>
+
+<ul>
+<li>&ldquo;context.xml"という名前自体に特別な意味はないが、ルールとして推奨されている</li>
+<li>xmlファイル内で定義する<code>&lt;Context&gt;</code>要素に、アプリケーション単位の情報を定義する。今回の場合はJDBCの接続情報。</li>
+<li>この<code>&lt;Context&gt;</code>要素を独立した設定ファイル(コンテキスト定義ファイル)にしたものがcontext.xml</li>
+<li><p>配置先は下記の5つのどれかと決まっている。</p></li>
+<li><p>%CATALINA_HOME%/conf/server.xml</p></li>
+<li>%CATALINA_HOME%/conf/context.xml</li>
+<li>%CATALINA_HOME%/conf/&lt;エンジン名>/&lt;ホスト名>/context.xml.default</li>
+<li>%CATALINA_HOME%/conf/&lt;エンジン名>/&lt;ホスト名>/&lt;アプリケーション名>.xml</li>
+<li>%CATALINA_HOME%/webapps/&lt;アプリケーション名>/META-INF/context.xml</li>
+</ul>
+
+
+<p>参考
+context.xmlの配置について分かったこと． &ndash; 小さな星がほらひとつ
+<a href="http://d.hatena.ne.jp/WorldWorldWorld/20101202/1291293444">http://d.hatena.ne.jp/WorldWorldWorld/20101202/1291293444</a></p>
+
+<p>「独習Java サーバーサイド編」にも同じことが書いてありました。</p>
+
+<p>下記を見ると、説明の方法がちょっと違います。ひとまず無難なところでMETA-INFの下に置きました。</p>
+
+<p>Apache Tomcat 7 Configuration Reference (7.0.40) &ndash; The Context Container
+<a href="http://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Defining_a_context">http://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Defining_a_context</a></p>
+
+<h2>ローカルのMySQLに接続してみる</h2>
+
+<p>``` java Chapter2.java
+package com.kirishikistudios.continuousops.digintojdbc;</p>
+
+<p>import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;</p>
+
+<p>public class Chapter2 extends HttpServlet {</p>
+
+<pre><code>@Override
+protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
+    request.setAttribute("subject", "JDBC");
+    Context context;
+    Connection connection = null;
+    try {
+        context = new InitialContext();
+        DataSource dataSource = (DataSource)context.lookup("java:comp/env/jdbc/continuousops");
+        connection = dataSource.getConnection();
+        request.setAttribute("message1", "Successfully connected to database.");
+        connection.close();
+    } catch (NamingException e) {
+        e.printStackTrace();
+    } catch (SQLException e) {
+        e.printStackTrace();
+    } finally {
+        if(connection != null) {
+            try {
+                connection.close();
+                request.setAttribute("message2", "Successfully disconnected from database.");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    this.getServletContext().getRequestDispatcher("/chapter2/index.jsp").forward(request, response);
+}
+</code></pre>
+
+<p>}</p>
+
+<p>```</p>
+
+<p>``` jsp index.jsp
+&lt;%@ page contentType=&ldquo;text/html; charsert=UTF-8&rdquo; %>
+&lt;!DOCTYPE html>
+<html>
+<body></p>
+
+<h2>Hello ${requestScope['subject']}!</h2>
+
+
+<p>${requestScope['message1']}</p>
+
+
+<p>${requestScope['message2']}</p>
+
+
+<p></body>
+</html></p>
+
+<p>```</p>
+
+<p>どこからどこをtry-catchで囲んで、例外処理すればよいのかがよくわかってないですが・・・このへんはエラーが出た際にアプリケーションでどう処理したいかにもよってくると思います。</p>
+
+<p>突っ込みどころがあればPull Requestお願いします。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2</a></p>
+
+<p><a href="https://github.com/chokkoyamada/chokkoyamada.github.com/blob/source/source/_posts/2013-05-23-dig-into-jdbc-2-create-project.markdown">https://github.com/chokkoyamada/chokkoyamada.github.com/blob/source/source/_posts/2013-05-23-dig-into-jdbc-2-create-project.markdown</a></p>
+
+<p>次は実際にSQLを発行していきます。</p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+</feed>

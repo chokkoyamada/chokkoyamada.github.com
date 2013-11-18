@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: aws | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013/"/>
+    <updated>2013-06-06T13:25:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013</id>
+    <content type="html"><![CDATA[<p>AWS Summit Tokyo 2013の中から2セッション、まとめておきたいと思います。1つめはRedshiftに関するセッションです。</p>
+
+<p>セッション紹介 ｜ AWS Summit Tokyo 2013  <br/>
+<a href="http://www.awssummittokyo.com/session.html#Tech-05">「Amazon Redshiftが切り開くクラウド・データウェアハウス」</a></p>
+
+<p>私の勤務する<a href="http://aws.amazon.com/jp/about-aws/whats-new/2013/6/5/Amazon-Redshift-and-High-Storage-Instance-in-Tokyo-Region/">AMoAdでは、RedShiftがUS-Eastリージョンで使えるようになって以来注目していて、実際に本番環境で使ってきました。</a> 私は中心的にRedshiftをじっくり使ってきたわけではないのですが、運用担当として興味深く聴講しました。</p>
+
+<h2>Redshiftの概要</h2>
+
+<pre><code>エンタープライズシステムにおける活用ノウハウ
+
+Amazon Redshiftの取り組みについて
+
+クラウド型データウェアハウス
+オンプレ環境におけるデータウェアハウスの課題
+・初期投資
+・運用管理
+・成長予測・費用対効果
+
+install backupなどのルーチンワークをAWSに任せて、codingとperformance tuningに割く時間を増やせる
+
+RDS, DynamoDBなどのオンライントランザクション→ EMR, S3→Redshift
+
+カラムナ型データベース
+列が多いケースにはパフォーマンスの向上が見られやすい
+
+* Leader Node クエリのパース・分析をしてC++コードを生成してcompute nodeに投げる
+
+* compute nodes ここを増やすことで器を大きくできる
+
+    1.6PBまで拡張可能
+
+JDBCのPostgreSQLドライバを使える
+
+AmazonS3かDynamoDBからの並列ロード
+
+S3への自動バックアップ・増分バックアップ・オンデマンドのバックアップ　
+リサイズする場合：新しいクラスタをバックグラウンドでプロビジョニング
+ノード数×時間単価の課金　
+
+日本ではデータウェアハウスとOLTPの中間的な使い方をしている場合が多い　
+</code></pre>
+
+<p>まずはRedshiftの概要の説明です。Redshiftはすでに基本的なところは調べて実際に使ってきたのでほとんどが既知の事項でした。</p>
+
+<p>エンタープライズ向けを主に意識しているセッションだけあって聞き慣れない単語がいくつかありましたが・・・そもそもRedshiftは個人で気軽に試すには若干値が張る（最小構成でも1ノードを1ヶ月フルで使うと$0.85 x 24hour x 30dayで6万円程度）</p>
+
+<pre><code>## Redshiftの性能は？
+
+他と比較するとSEの寿命が縮まるので・・・
+
+### 巨大テーブルからの検索処理
+
+1.5TBくらいのデータの検索結果  500億件
+8XL 2node 43.5sec
+8XL 4node 27.8sec
+8XL 8node 19.8sec
+
+線形に性能が向上しているのに驚いた
+
+### データロードのスピード 500億件
+
+8XL 2node 2:54sec
+8XL 4node 1:37
+8XL 8node 0:46
+
+### 1.2億件の検索結果
+
+8XL 2node 3.30 sec
+8XL 4node 1.40 sec
+8XL 8node 1.80 sec
+
+## バッチ処理は？
+
+EMRとの比較
+1.5TB, 500億件
+
+EMR 29min
+Redshift 17min
+
+EMR 71min
+Redshift 5min
+
+チューニングのポイント
+キー(index)
+
+distribution keyに応じてスライスに配置される
+sort keyをもとにレコードがソートされる
+
+### チューニング効果
+* 1.2億件
+
+指定無しは1.8秒
+指定ありは1秒
+
+* バッチ処理
+
+指定あり：24min
+指定無し：16min
+
+sort keyを入れるとロードは遅くなるので注意
+
+### コスト:w
+128coe 960gb 128tb storage
+構築費はほぼ不要、維持管理のSEも不要、センター費用は不要
+
+### 注意点は？
+不得意なデータ形式もある
+EMRで前処理
+
+簡単につくれてしまうため、統制のきいていないシステムの乱立に注意
+
+### まとめ
+
+* 性能は線形にスケール
+* バッチ処理も得意
+* チューニングは新しい概念で
+* 利用料課金はメリット大
+* 注意点もある
+</code></pre>
+
+<p>次は野村総研の方からの検証結果報告です。データのSELECTが早いのは確かだと思います。ただ、セッションでも言及されているように、「不得意なデータ形式もある」ということで、結局のところRedshiftのポテンシャルをフルに引き出して使いこなすには、時間とともに溜まるノウハウの蓄積が欠かせない気がします。</p>
+
+<p>データのロードについても同様で、<a href="http://www.hapyrus.com/products/flydata-for-redshift">FlyData for Amazon Redshift</a>というサービスがあるくらい、Redshiftに適切な速度で要領よくデータをアップロードするのは難しいという印象です。このへんも各所で検証が進むにつれて、うまいやり方というのが見いだされてくるのかなと思います。</p>
+]]></content>
+  </entry>
+  
+</feed>

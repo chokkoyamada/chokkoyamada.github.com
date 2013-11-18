@@ -1,0 +1,478 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成 - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="JSP &amp; Servletを使った基本的なプロジェクトを作成 まずは基本的なプロジェクトを作成しました。
+mavenのプロジェクト構成に沿った形にして、JSPとServletを連携させた最低限の構成です。 ソースはこちらです。　
+chokkoyamada/DigIntoJDBC at &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/05/23/dig-into-jdbc-2-create-project">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-23T08:48:00+09:00" pubdate data-updated="true">May 23<span>rd</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>JSP &amp; Servletを使った基本的なプロジェクトを作成</h2>
+
+<p>まずは基本的なプロジェクトを作成しました。
+mavenのプロジェクト構成に沿った形にして、JSPとServletを連携させた最低限の構成です。</p>
+
+<p>ソースはこちらです。　
+chokkoyamada/DigIntoJDBC at chapter2 · GitHub
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2</a></p>
+
+<p><a href="http://www.amazon.co.jp/%E7%8B%AC%E7%BF%92Java%E3%82%B5%E3%83%BC%E3%83%90%E3%82%B5%E3%82%A4%E3%83%89%E7%B7%A8-%E7%AC%AC2%E7%89%88-%E5%B1%B1%E7%94%B0-%E7%A5%A5%E5%AF%9B/dp/4798130494">「独習Java サーバーサイド編 第2版」</a> を教科書的に使いながら作りました。
+ただ、書籍の中ではJSPの中で直接データベースに接続しているので、それはJavaのクラスファイルのほうへ外出ししました。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>├── lib
+</span><span class='line'>├── pom.xml
+</span><span class='line'>├── src
+</span><span class='line'>│   └── main
+</span><span class='line'>│       ├── java
+</span><span class='line'>│       │   └── com
+</span><span class='line'>│       │       └── kirishikistudios
+</span><span class='line'>│       │           └── continuousops
+</span><span class='line'>│       │               └── digintojdbc
+</span><span class='line'>│       │                   └── Chapter2.java
+</span><span class='line'>│       ├── resources
+</span><span class='line'>│       └── webapp
+</span><span class='line'>│           ├── META-INF
+</span><span class='line'>│           │   └── context.xml
+</span><span class='line'>│           ├── WEB-INF
+</span><span class='line'>│           │   └── web.xml
+</span><span class='line'>│           └── chapter2
+</span><span class='line'>│               └── index.jsp</span></code></pre></td></tr></table></div></figure>
+
+
+<p>MySQLサーバーはlocalhostに立てて、ユーザー名jdbcuser、パスワードjdbcuserで作ってcontinuousopsというデータベースを作成してあります。</p>
+
+<h2>context.xmlの置き場所と意味</h2>
+
+<p>上記の中で、context.xmlはどういうルールで書いてどこに置けばよいのかが分かりませんでした。
+まとめると下記のようなことのようです。</p>
+
+<ul>
+<li>&ldquo;context.xml&#8221;という名前自体に特別な意味はないが、ルールとして推奨されている</li>
+<li>xmlファイル内で定義する<code>&lt;Context&gt;</code>要素に、アプリケーション単位の情報を定義する。今回の場合はJDBCの接続情報。</li>
+<li>この<code>&lt;Context&gt;</code>要素を独立した設定ファイル(コンテキスト定義ファイル)にしたものがcontext.xml</li>
+<li><p>配置先は下記の5つのどれかと決まっている。</p></li>
+<li><p>%CATALINA_HOME%/conf/server.xml</p></li>
+<li>%CATALINA_HOME%/conf/context.xml</li>
+<li>%CATALINA_HOME%/conf/&lt;エンジン名>/&lt;ホスト名>/context.xml.default</li>
+<li>%CATALINA_HOME%/conf/&lt;エンジン名>/&lt;ホスト名>/&lt;アプリケーション名>.xml</li>
+<li>%CATALINA_HOME%/webapps/&lt;アプリケーション名>/META-INF/context.xml</li>
+</ul>
+
+
+<p>参考
+context.xmlの配置について分かったこと． &ndash; 小さな星がほらひとつ
+<a href="http://d.hatena.ne.jp/WorldWorldWorld/20101202/1291293444">http://d.hatena.ne.jp/WorldWorldWorld/20101202/1291293444</a></p>
+
+<p>「独習Java サーバーサイド編」にも同じことが書いてありました。</p>
+
+<p>下記を見ると、説明の方法がちょっと違います。ひとまず無難なところでMETA-INFの下に置きました。</p>
+
+<p>Apache Tomcat 7 Configuration Reference (7.0.40) &ndash; The Context Container
+<a href="http://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Defining_a_context">http://tomcat.apache.org/tomcat-7.0-doc/config/context.html#Defining_a_context</a></p>
+
+<h2>ローカルのMySQLに接続してみる</h2>
+
+<figure class='code'><figcaption><span>Chapter2.java</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">kirishikistudios</span><span class="o">.</span><span class="na">continuousops</span><span class="o">.</span><span class="na">digintojdbc</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.naming.Context</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.naming.InitialContext</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.naming.NamingException</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.servlet.ServletException</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServlet</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServletRequest</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.servlet.http.HttpServletResponse</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">javax.sql.DataSource</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.io.IOException</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.sql.Connection</span><span class="o">;</span>
+</span><span class='line'><span class="kn">import</span> <span class="nn">java.sql.SQLException</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Chapter2</span> <span class="kd">extends</span> <span class="n">HttpServlet</span> <span class="o">{</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">protected</span> <span class="kt">void</span> <span class="nf">doGet</span><span class="o">(</span><span class="n">HttpServletRequest</span> <span class="n">request</span><span class="o">,</span> <span class="n">HttpServletResponse</span> <span class="n">response</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">ServletException</span><span class="o">,</span> <span class="n">IOException</span><span class="o">{</span>
+</span><span class='line'>        <span class="n">request</span><span class="o">.</span><span class="na">setAttribute</span><span class="o">(</span><span class="s">&quot;subject&quot;</span><span class="o">,</span> <span class="s">&quot;JDBC&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">Context</span> <span class="n">context</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">Connection</span> <span class="n">connection</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">context</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InitialContext</span><span class="o">();</span>
+</span><span class='line'>            <span class="n">DataSource</span> <span class="n">dataSource</span> <span class="o">=</span> <span class="o">(</span><span class="n">DataSource</span><span class="o">)</span><span class="n">context</span><span class="o">.</span><span class="na">lookup</span><span class="o">(</span><span class="s">&quot;java:comp/env/jdbc/continuousops&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">connection</span> <span class="o">=</span> <span class="n">dataSource</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+</span><span class='line'>            <span class="n">request</span><span class="o">.</span><span class="na">setAttribute</span><span class="o">(</span><span class="s">&quot;message1&quot;</span><span class="o">,</span> <span class="s">&quot;Successfully connected to database.&quot;</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">connection</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">NamingException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">finally</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">if</span><span class="o">(</span><span class="n">connection</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">connection</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span><span class='line'>                    <span class="n">request</span><span class="o">.</span><span class="na">setAttribute</span><span class="o">(</span><span class="s">&quot;message2&quot;</span><span class="o">,</span> <span class="s">&quot;Successfully disconnected from database.&quot;</span><span class="o">);</span>
+</span><span class='line'>                <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>                    <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span><span class='line'>                <span class="o">}</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">this</span><span class="o">.</span><span class="na">getServletContext</span><span class="o">().</span><span class="na">getRequestDispatcher</span><span class="o">(</span><span class="s">&quot;/chapter2/index.jsp&quot;</span><span class="o">).</span><span class="na">forward</span><span class="o">(</span><span class="n">request</span><span class="o">,</span> <span class="n">response</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span>index.jsp</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='jsp'><span class='line'><span class="k">&lt;%@</span> <span class="n">page</span> <span class="n">contentType</span><span class="o">=</span><span class="s">&quot;text/html; charsert=UTF-8&quot;</span> <span class="k">%&gt;</span>
+</span><span class='line'><span class="cp">&lt;!DOCTYPE html&gt;</span>
+</span><span class='line'><span class="nt">&lt;html&gt;</span>
+</span><span class='line'><span class="nt">&lt;body&gt;</span>
+</span><span class='line'><span class="nt">&lt;h2&gt;</span>Hello ${requestScope[&#39;subject&#39;]}!<span class="nt">&lt;/h2&gt;</span>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>${requestScope[&#39;message1&#39;]}<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'><span class="nt">&lt;p&gt;</span>${requestScope[&#39;message2&#39;]}<span class="nt">&lt;/p&gt;</span>
+</span><span class='line'><span class="nt">&lt;/body&gt;</span>
+</span><span class='line'><span class="nt">&lt;/html&gt;</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>どこからどこをtry-catchで囲んで、例外処理すればよいのかがよくわかってないですが・・・このへんはエラーが出た際にアプリケーションでどう処理したいかにもよってくると思います。</p>
+
+<p>突っ込みどころがあればPull Requestお願いします。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter2</a></p>
+
+<p><a href="https://github.com/chokkoyamada/chokkoyamada.github.com/blob/source/source/_posts/2013-05-23-dig-into-jdbc-2-create-project.markdown">https://github.com/chokkoyamada/chokkoyamada.github.com/blob/source/source/_posts/2013-05-23-dig-into-jdbc-2-create-project.markdown</a></p>
+
+<p>次は実際にSQLを発行していきます。</p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-23T08:48:00+09:00" pubdate data-updated="true">May 23<span>rd</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/jdbc/'>jdbc</a>, <a class='category' href='/blog/categories/servlet/'>servlet</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/05/23/dig-into-jdbc-2-create-project/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/05/23/dig-into-jdbc-2-create-project/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/05/21/dig-into-jdbc/" title="Previous Post: 最速ウェブアプリのためのJDBC再入門(1)">&laquo; 最速ウェブアプリのためのJDBC再入門(1)</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/24/dig-into-jdbc-3/" title="Next Post: 最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文">最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>AWS Summit Tokyo 2013(2) FreakOut - 50ms or dieの世界 - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="AWS Summit Tokyo 2013のセッションでもう一つ、メモを取りながら聴講したのはFreakOut社のDSPシステム構築のセッションです。 私も仕事でほぼ同じようなシステムを作っているので、私にとってはFreakOut社は(ド競合ではないまでも)同業者にあたります。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013-freakout">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-06T15:19:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>AWS Summit Tokyo 2013のセッションでもう一つ、メモを取りながら聴講したのはFreakOut社のDSPシステム構築のセッションです。</p>
+
+<p><a href="http://www.slideshare.net/Satully/jaws2013lt-1000qps">私も仕事でほぼ同じようなシステムを作っているので</a>、私にとってはFreakOut社は(ド競合ではないまでも)同業者にあたります。そういう意味で最も注目していたセッションでした。</p>
+
+<p><a href="http://www.awssummittokyo.com/session.html#DM-07">クラウドで RTB　～50ms or die. を支えるFreakOut の AWS 活用～</a></p>
+
+<p>彼らがよく使っている「50ms or die」という言葉はとてもキャッチーだと思っていて、好きです。</p>
+
+<p>これはRTBでbid requestに対して50ミリ秒以内にレスポンスを返し続けなければいけないというルールを端的に言い表したフレーズです。</p>
+
+<p>実際にはこれにネットワークレイテンシの考慮を加えて合計で100ミリ秒が目安であったり、SSP毎にレギュレーションが違ったりと、50ミリ秒という数字が全てではないのですが、レスポンスタイムのしきい値という意味ではとても現実的な数字だと思います。</p>
+
+<p>実際には20~30ミリ秒くらいでレスポンスを返すシステムを想定して作っていくべきだと思っていて、私も実際そのへんをターゲットに置いています。</p>
+
+<pre><code>クラウドでRTB
+
+FreakOUt
+
+2010/10創業
+
+4billion+imp
+60+staff
+
+## FreakOutとRTB
+
+FreakOutは広告主のネット広告におけるROI最適化を目的としたDSPを展開
+
+このページのオーディエンスはどんな人
+興味関心
+生活主観
+過去の行動
+
+RTBによって広告主の都合で買い付け可能に
+
+960億/月のRTBreqを受けている　
+
+## FreakoutとAWS
+
+100msecで広告を表示する
+100msecでSSPがリクエストを投げ、DSPがレスポンスを返しきるまで
+TCPのRTTを含んでいる
+SSPは複数あり、多くの同時多発的リクエストが発生する
+
+### 課題
+
+レイテンシの軽減
+多数のRTB処理
+落札後の画像&amp;Flash配信
+
+RTBはCPUバウンド
+
+自作PCを使っている 数百台規模で使っている　
+多コアを安く並べる
+
+その一方でコンテンツ配信には広い帯域が必要
+
+S3+CloudFrontを使用
+コストパフォーマンスが良い
+
+オンプレミス＋クラウドで費用対効果を追求
+すべてをクラウドに任せるのではなく、徹底して費用対効果を勘案したうえで技術選択を行っている
+
+## 海外での展開とAWS
+
+レイテンシ
+singapore 80msec
+us-west 110msec
+us-east 160msec
+
+海外でも物理的に近い必要がある
+
+VPCとVPC connsを使って拡張
+
+EC2 専用のAMIを作成して活用
+ELB LVSの代わりとして活用
+Elasticache 当時VPCで使用不能だった
+RDS　Slaveでバッチを稼働させるため不使用　
+ELB以外はEC2で構築
+
+構築初期　
+c1.xlarge
+app
+m2.2xlarge
+kvs
+m1.medium
+other
+
+ログ処理関連
+S3 海外でputして日本でget
+オンプレミスのhadoopへ
+
+まとめ
+自分たちの都合で必要なことを判断して使う
+AWSはいい意味でドライなので線引きをエンジニア自身で考える
+AWS以上に都合のよいクラウドはいまのところない
+
+## 改善点・課題
+
+CloudFront Reserved Capacity
+10tboverなら配信料ダウン
+Region単位契約なので注意
+
+HTML/JS
+cookieをさわりたいので、ドメイン指定する必要がある
+カスタムオリジンをhttps対応してくれると助かる
+
+cc2.8xlargeによるインスタンス集約
+c1.xlarge x 4以上
+
+Elasticacheを今後使っていきたい
+
+EC2はインスタンスを増やすのが簡単だが増やしすぎると運用負担増
+1台あたりのパフォーマンス改善が重要　
+
+## おわりに
+
+* FreakOutは必要な技術を都度精査して選択する
+* 結果責任は技術選択をする事業者自身にある
+* AWSは有力な選択肢として魅力をもっていると考えており、今この瞬間もAWSを利用して広告を配信している
+</code></pre>
+
+<p>あまり新しい情報は無かったのですが、cc2.8xlargeインスタンスの使用を検討しているというのは興味深かったです。価格的にはc1.xlargeの4倍程度なのですが、じっさいには4倍以上のCPU能力はありそうだし、ネットワークは1Gbpsから10Gbpsになるのでネットワークも安定しそうだしということで、効果がありそうだからです。実際検証してみたいと思います。</p>
+
+<p>クラウドでは安価で冗長性の高いインスタンスを並列させてスケールアウトしていくというのがこれまでは半ばポリシーでしたが、最近はそうでもないと思い始めています。</p>
+
+<p>作るシステムにもよりますが、単体マシンの性能もどんどん向上している以上、その範囲内でもっとも効率よく処理できるのであれば1台になるべく詰め込んだほうがリソースは効率的に使えるし管理も楽だし価格も安くなる計算だからです。</p>
+
+<p>あとは物理サーバーとの比較ですね。FreakOutは国内のbidサーバーについては自作のマシンを使っていると言っていて写真もありましたが、実際あればクラウド、例えばc1.xlargeと比べてどの程度コストメリットがあるのかどうか。</p>
+
+<p>また、FreakOutはPerlをメイン言語としていると聞いているので、Perlでどう作っているかというのは大変気になりました。</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-06T15:19:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013-freakout/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013-freakout/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/06/06/aws-summit-2013/" title="Previous Post: AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ">&laquo; AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/06/18/techhills6th-jenkins/" title="Next Post: 第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

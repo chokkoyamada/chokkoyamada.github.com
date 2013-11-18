@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: rowset | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/rowset/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(7) RowSet Objects]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/31/dig-into-jdbc-7-rowset-object/"/>
+    <updated>2013-05-31T08:42:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/31/dig-into-jdbc-7-rowset-object</id>
+    <content type="html"><![CDATA[<h2>RowSetはResultSetの拡張</h2>
+
+<p>RowSet ObjectはResultSetを拡張したクラスです。ResultSetがデータベースの実装をそのまま引き継ぐタイプの実装であるのに対し、RowSetはアプリケーション側で扱いやすいように機能が追加されています。</p>
+
+<p>RowSetはJavaBeansでもあります。JavaBeansとは、下記のような特徴を持ちます。</p>
+
+<ul>
+<li>引数の無いコンストラクタで直接インスタンス化できる</li>
+<li>getter/setterがある</li>
+<li>Serializableである</li>
+</ul>
+
+
+<h2>RowSet Objectの種類</h2>
+
+<p>RowSetには主に下記の5種類のインタフェースがあります。</p>
+
+<p>[接続維持型]</p>
+
+<ul>
+<li>JDBCRowSet</li>
+</ul>
+
+
+<p>接続型のRowSet</p>
+
+<p>[接続非維持型]</p>
+
+<ul>
+<li>CachedRowSet</li>
+</ul>
+
+
+<p>データをDBから取得後、オブジェクト内にキャッシュし、接続を切断する。</p>
+
+<ul>
+<li>WebRowSet</li>
+</ul>
+
+
+<p>CachedRowSetにXMLの拡張がついている</p>
+
+<ul>
+<li>JoinRowSet</li>
+</ul>
+
+
+<p>WebRowSetの拡張で、別テーブル同士のJOINができる</p>
+
+<ul>
+<li>FilteredRowSet</li>
+</ul>
+
+
+<p>WebRowSetの拡張で、データのフィルタリング機能を持つ</p>
+
+<p>この中で、使いそうだと感じたCachedRowSetとJoinRowSetを試してみます。</p>
+
+<p>Using CachedRowSetObjects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html</a></p>
+
+<p>Using JoinRowSet Objects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html</a></p>
+
+<h2>CachedRowSet: 更新時にコンフリクトした場合の解決, 他のオブジェクトへのメッセージ機能</h2>
+
+<p>1つ1つの処理が短く、長くても数百ミリ秒でレスポンスを返すウェブだとあまり恩恵がないかもしれないのですが、CachedObjectはDBからデータを取得した後、即座に接続を切断(実際にはコネクションプールに戻す)しても、オブジェクト自体はデータを保持しています。</p>
+
+<p>ResultSetはConnectionから用意したStatementオブジェクトから返されるものなので、DBへの接続を保持している必要があったので、コネクションプールが枯渇しやすい状況においてはメリットになるかもしれません。</p>
+
+<p><code>java
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setCommand("SELECT * FROM COFFEES");
+cachedRowSet.execute(connection);
+</code></p>
+
+<p>接続の取得方法はいくつかありますが、今回はexecuteのときにconnectionを渡すようにしています。
+下記のようにDataSouceを渡す方法も使えます。</p>
+
+<p><code>java
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setDataSouceName("java:comp/env/jdbc/continuousops");
+cachedRowSet.setCommand("SELECT * FROM COFFEES");
+cachedRowSet.execute();
+</code></p>
+
+<p>他のオブジェクトに通知をしたい場合、addRowSetListener()で指定できます。
+RowSetListenerは下記の3つのイベントをサポートしています。</p>
+
+<ul>
+<li>rowSetChanged</li>
+<li>rowChanged</li>
+<li>cursorMoved</li>
+</ul>
+
+
+<p><code>java
+cachedRowSet.addRowSetListener(new ExampleRowSetListener());
+</code></p>
+
+<p>CachedRowSetはオブジェクトにキャッシュしているデータなので、データを更新してコミットしようとした際に、元のデータとズレが生じる可能性があります。CachedRowSetはそれが発生した際に例外を投げる仕組みが用意されているので、それを試してみました。</p>
+
+<p>``` java
+//getting first cachedRowSet
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+cachedRowSet.execute(connection);</p>
+
+<p>//getting second cachedRowSet
+cachedRowSet2 = new CachedRowSetImpl();
+cachedRowSet2.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+cachedRowSet2.execute(connection);</p>
+
+<p>cachedRowSet.next();
+cachedRowSet.updateInt(&ldquo;SUP_ID&rdquo;, 101);
+cachedRowSet.updateRow();
+cachedRowSet.acceptChanges();</p>
+
+<p>cachedRowSet2.next();
+cachedRowSet2.updateInt(&ldquo;SUP_ID&rdquo;, 150);
+cachedRowSet2.updateRow();
+cachedRowSet2.acceptChanges();
+```</p>
+
+<p>cachedRowSetのインスタンスを2つ用意し、データをそれぞれ取得した後データを更新かけてみます。こうすると、1つめのcachedRowSetを更新した後、2つめのcachedRowSetはオブジェクト内のデータとDBのレコードにずれが出るので、一番最後の文である<code>cachedRowSet2.acceptChanges();</code>を実行したときに例外が投げられます。</p>
+
+<p>それが、<code>SyncProviderException</code>です。これをcatchしてコンフリクトを解決させようとしました。下記はほとんどOracleのサンプルコードのままです。</p>
+
+<p>``` java
+} catch (SyncProviderException spe){</p>
+
+<pre><code>System.out.println("conflict detected.");
+
+SyncResolver resolver = spe.getSyncResolver();
+
+Object crsValue;
+Object resolverValue;
+Object resolvedValue;
+
+try {
+    while (resolver.nextConflict()) {
+
+        if (resolver.getStatus() == SyncResolver.UPDATE_ROW_CONFLICT) {
+            int row = resolver.getRow();
+            cachedRowSet2.absolute(row);
+
+            int colCount = cachedRowSet2.getMetaData().getColumnCount();
+            for (int j = 1; j &lt;= colCount; j++) {
+                System.out.println("conflict value: " + resolver.getConflictValue(j));
+                if (resolver.getConflictValue(j) != null) {
+                    crsValue = cachedRowSet2.getObject(j);
+                    resolverValue = resolver.getConflictValue(j);
+
+                    resolvedValue = crsValue;
+
+                    resolver.setResolvedValue(j, resolvedValue);
+                    System.out.println("conflict resolved.");
+                }
+            }
+        }
+    }
+} catch (SQLException e) {
+    e.printStackTrace();
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>ただ、これは実際にはうまく動作させることができていません。
+下記のようになってしまい、conflictが検知できるものの、実際にループを回すとコンフリクトが生じているデータが取得できず、そのままループが終わってしまいます。</p>
+
+<p><code>
+conflict detected.
+conflict value: null
+conflict value: null
+conflict value: null
+conflict value: null
+conflict value: null
+</code></p>
+
+<p>結果としては、1つ目の更新が反映され、2つ目の更新は無視されるという挙動になります。
+これがMySQLとかConnector-Jの実装によるものなのか、私が書いたコードの問題なのかは結局のところ分かりませんでした。</p>
+
+<h2>JoinRowSet: 2つのRowSetからテーブル同士のJOINと同等のことを行う</h2>
+
+<p>もう一つの興味深い機能である、RowSetのジョイン機能も試してみました。</p>
+
+<p>```
+mysql> SELECT * FROM COFFEES;
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| COF_NAME           | SUP_ID | PRICE | SALES | TOTAL |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| Amaretto           |    101 |  5.99 |     0 |     0 |
+| Amaretto_decaf     |     49 | 10.99 |     0 |     0 |
+| Colombian          |    101 |  0.07 |     0 |     0 |
+| Colombian_Decaf    |    101 |  8.99 |     0 |     0 |
+| Espresso           |    150 |  9.99 |     0 |     0 |
+| French_Roast       |     49 |  8.99 |     0 |     0 |
+| French_Roast_Decaf |     49 |  9.99 |     0 |     0 |
+| Hazelnut           |     49 |  9.99 |     0 |     0 |
+| Hazelnut_decaf     |     49 | 10.99 |     0 |     0 |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+9 rows in set (0.00 sec)</p>
+
+<p>mysql> SELECT * FROM SUPPLIERS;
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| SUP_ID | SUP_NAME                  | STREET              | CITY         | STATE | ZIP   |
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+|     49 | Superior Coffee           | 1 Party Place       | Mendocino    | CA    | 95460 |
+|    101 | Acme, Inc.                | 99 Market Street    | Groundsville | CA    | 95199 |
+|    150 | The High Ground           | 100 Coffee Lane     | Meadows      | CA    | 93966 |
+|    456 | Restaurant Supplies, Inc. | 200 Magnolia Street | Meadows      | CA    | 93966 |
+|    927 | Professional Kitchen      | 300 Daisy Avenue    | Groundsville | CA    | 95199 |
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+5 rows in set (0.00 sec)
+```</p>
+
+<p>このように、COFFEESテーブルとSUPPLIERテーブルがあるとして、サプライヤー名を指定したときにそのIDをキーにしてコーヒーリストから商品名を持ってきたい・・・というようなケースはテーブルジョインのよくあるケースです。その際、普通は</p>
+
+<p><code>sql
+SELECT c.COF_NAME
+FROM COFFEES AS c, SUPPLIERS AS s
+WHERE c.SUP_ID = s.SUP_ID
+AND SUP_NAME = "Acme, Inc."
+</code></p>
+
+<p>などとやるのが普通ですが、これを各テーブルのRowSetをJoinRowSetを使ってJavaコード内でジョインさせることができます。</p>
+
+<p>``` java
+coffees = new CachedRowSetImpl();
+coffees.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+coffees.execute(connection);</p>
+
+<p>suppliers = new CachedRowSetImpl();
+suppliers.setCommand(&ldquo;SELECT * FROM SUPPLIERS&rdquo;);
+suppliers.execute(connection);</p>
+
+<p>jrs = new JoinRowSetImpl();
+jrs.addRowSet(coffees, &ldquo;SUP_ID&rdquo;);
+jrs.addRowSet(suppliers, &ldquo;SUP_ID&rdquo;);</p>
+
+<p>System.out.println(&ldquo;Coffees bought from &rdquo; + supplierName + &ldquo;: &rdquo;);
+while (jrs.next()) {</p>
+
+<pre><code>if (jrs.getString("SUP_NAME").equals(supplierName)) {
+    String coffeeName = jrs.getString(1);
+    System.out.println("     " + coffeeName);
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>これでJOINしたSQLと同等の結果が得られます。</p>
+
+<p>実際には使う機会は多くなさそうですが、データベースをシャーディングしていて別データベースにあるテーブルをJOINしたい場合などには便利に使えると思いました。</p>
+
+<p>今回のソースはこちらです。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+</feed>

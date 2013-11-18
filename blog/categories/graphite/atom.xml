@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: graphite | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/graphite/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[BerkshelfとVagrantの連携(2)]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install/"/>
+    <updated>2013-05-20T22:02:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install</id>
+    <content type="html"><![CDATA[<h2>Berkshelf+Vagrantで簡単にGraphiteをインストール</h2>
+
+<p>昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、Graphiteをchefのcookbookを使ってインストールしてみます。</p>
+
+<ul>
+<li>Graphite</li>
+</ul>
+
+
+<p><a href="http://graphite.wikidot.com">http://graphite.wikidot.com</a></p>
+
+<p><a href="http://graphite.readthedocs.org/en/0.9.10/">http://graphite.readthedocs.org/en/0.9.10/</a></p>
+
+<p>Graphiteはデータのリアルタイム集積・グラフ可視化ツールです。フロントのGUIはDjangoで、そこでデータを集計加工してみたりグラフを描画したりができます。バックエンドはcarbonというデーモンで、ここに向かってネットワーク経由でデータを送信します。・・・というところまでがドキュメントを読んだ限りの概要で、まだ使ったことはありません。とりあえずインストールします。</p>
+
+<h2>GitHub上のcookbookをFork</h2>
+
+<p>ウェブ上にGraphiteをインストールするレシピが無いかと探してみました。Ubuntu向けのものは公式であるのですが、CentOS/Amazon Linuxで使えるものではなかったので、GitHubを探したところ、ありました。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos">https://github.com/taos/graphite-chef-centos</a></p>
+
+<p>しかし、このcookbookのままだとepelのrpmが404になってしまって動作しませんでした。
+そこで自分のところにforkして、修正して使います。</p>
+
+<p><a href="https://github.com/chokkoyamada/graphite-chef-centos">https://github.com/chokkoyamada/graphite-chef-centos</a></p>
+
+<p>修正したのはepelのRPMのURLだけで動きました。</p>
+
+<h2>metadataのバージョン番号がポイント</h2>
+
+<p>Berksfileを次のように書きます。</p>
+
+<p><code>
+cookbook 'graphite-chef-centos', git: 'git://github.com/chokkoyamada/graphite-chef-centos.git'
+</code></p>
+
+<p>ここではまりどころだったのは、その前にオリジナルの作者であるtaos氏のレポジトリのURLを指定していたのを自分のレポジトリのURLに書き換えたのですが、その後vagrant up/reloadしてもキャッシュが効いていたのか、cookbookがうまく更新できなくて悩みました。</p>
+
+<p>metadataがポイントなんですね。<a href="https://github.com/chokkoyamada/graphite-chef-centos/blob/master/metadata.rb#L5">バージョン番号を更新</a> したら新しいものが入りました。gemと同じ要領ですね。</p>
+
+<p>今回のVagrantfileはこちらです。ローカル(Mac)からウェブを見るためにポートフォワーディングを設定している以外は前回と同じです。</p>
+
+<p>``` ruby
+Vagrant.configure(&ldquo;2&rdquo;) do |config|
+  config.berkshelf.enabled = true
+  config.berkshelf.berksfile_path = &ldquo;Berksfile&rdquo;
+  config.vm.box = &ldquo;centos63chef&rdquo;</p>
+
+<p>  config.vm.network :forwarded_port, guest: 80, host: 8080</p>
+
+<p>  config.vm.synced_folder &ldquo;data&rdquo;, &ldquo;/vagrant_data&rdquo;</p>
+
+<p>  config.vm.provision :chef_solo do |chef|</p>
+
+<pre><code>chef.add_recipe "graphite-chef-centos"
+</code></pre>
+
+<p>  end
+end
+```</p>
+
+<p>あとはvagrantを走らせるだけ。</p>
+
+<p><code>
+vagrant up
+</code></p>
+
+<p><code>
+vagrant ssh
+sudo service iptables stop
+</code>
+でiptablesを止めてから、[<a href="http://localhost:8080/">http://localhost:8080/</a>] にアクセスします。</p>
+
+<p><img src="/images/2013-05-20-graphite.png"></p>
+
+<p>Graphiteがこんなに簡単にインストールできました! コマンド1個1個打っていくよりはるかに楽です。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
+
+<p>次はGraphiteを使い倒していきます。</p>
+]]></content>
+  </entry>
+  
+</feed>

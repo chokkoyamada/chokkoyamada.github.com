@@ -1,0 +1,1020 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: mysql | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/mysql/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(7) RowSet Objects]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/31/dig-into-jdbc-7-rowset-object/"/>
+    <updated>2013-05-31T08:42:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/31/dig-into-jdbc-7-rowset-object</id>
+    <content type="html"><![CDATA[<h2>RowSetはResultSetの拡張</h2>
+
+<p>RowSet ObjectはResultSetを拡張したクラスです。ResultSetがデータベースの実装をそのまま引き継ぐタイプの実装であるのに対し、RowSetはアプリケーション側で扱いやすいように機能が追加されています。</p>
+
+<p>RowSetはJavaBeansでもあります。JavaBeansとは、下記のような特徴を持ちます。</p>
+
+<ul>
+<li>引数の無いコンストラクタで直接インスタンス化できる</li>
+<li>getter/setterがある</li>
+<li>Serializableである</li>
+</ul>
+
+
+<h2>RowSet Objectの種類</h2>
+
+<p>RowSetには主に下記の5種類のインタフェースがあります。</p>
+
+<p>[接続維持型]</p>
+
+<ul>
+<li>JDBCRowSet</li>
+</ul>
+
+
+<p>接続型のRowSet</p>
+
+<p>[接続非維持型]</p>
+
+<ul>
+<li>CachedRowSet</li>
+</ul>
+
+
+<p>データをDBから取得後、オブジェクト内にキャッシュし、接続を切断する。</p>
+
+<ul>
+<li>WebRowSet</li>
+</ul>
+
+
+<p>CachedRowSetにXMLの拡張がついている</p>
+
+<ul>
+<li>JoinRowSet</li>
+</ul>
+
+
+<p>WebRowSetの拡張で、別テーブル同士のJOINができる</p>
+
+<ul>
+<li>FilteredRowSet</li>
+</ul>
+
+
+<p>WebRowSetの拡張で、データのフィルタリング機能を持つ</p>
+
+<p>この中で、使いそうだと感じたCachedRowSetとJoinRowSetを試してみます。</p>
+
+<p>Using CachedRowSetObjects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html</a></p>
+
+<p>Using JoinRowSet Objects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html</a></p>
+
+<h2>CachedRowSet: 更新時にコンフリクトした場合の解決, 他のオブジェクトへのメッセージ機能</h2>
+
+<p>1つ1つの処理が短く、長くても数百ミリ秒でレスポンスを返すウェブだとあまり恩恵がないかもしれないのですが、CachedObjectはDBからデータを取得した後、即座に接続を切断(実際にはコネクションプールに戻す)しても、オブジェクト自体はデータを保持しています。</p>
+
+<p>ResultSetはConnectionから用意したStatementオブジェクトから返されるものなので、DBへの接続を保持している必要があったので、コネクションプールが枯渇しやすい状況においてはメリットになるかもしれません。</p>
+
+<p><code>java
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setCommand("SELECT * FROM COFFEES");
+cachedRowSet.execute(connection);
+</code></p>
+
+<p>接続の取得方法はいくつかありますが、今回はexecuteのときにconnectionを渡すようにしています。
+下記のようにDataSouceを渡す方法も使えます。</p>
+
+<p><code>java
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setDataSouceName("java:comp/env/jdbc/continuousops");
+cachedRowSet.setCommand("SELECT * FROM COFFEES");
+cachedRowSet.execute();
+</code></p>
+
+<p>他のオブジェクトに通知をしたい場合、addRowSetListener()で指定できます。
+RowSetListenerは下記の3つのイベントをサポートしています。</p>
+
+<ul>
+<li>rowSetChanged</li>
+<li>rowChanged</li>
+<li>cursorMoved</li>
+</ul>
+
+
+<p><code>java
+cachedRowSet.addRowSetListener(new ExampleRowSetListener());
+</code></p>
+
+<p>CachedRowSetはオブジェクトにキャッシュしているデータなので、データを更新してコミットしようとした際に、元のデータとズレが生じる可能性があります。CachedRowSetはそれが発生した際に例外を投げる仕組みが用意されているので、それを試してみました。</p>
+
+<p>``` java
+//getting first cachedRowSet
+cachedRowSet = new CachedRowSetImpl();
+cachedRowSet.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+cachedRowSet.execute(connection);</p>
+
+<p>//getting second cachedRowSet
+cachedRowSet2 = new CachedRowSetImpl();
+cachedRowSet2.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+cachedRowSet2.execute(connection);</p>
+
+<p>cachedRowSet.next();
+cachedRowSet.updateInt(&ldquo;SUP_ID&rdquo;, 101);
+cachedRowSet.updateRow();
+cachedRowSet.acceptChanges();</p>
+
+<p>cachedRowSet2.next();
+cachedRowSet2.updateInt(&ldquo;SUP_ID&rdquo;, 150);
+cachedRowSet2.updateRow();
+cachedRowSet2.acceptChanges();
+```</p>
+
+<p>cachedRowSetのインスタンスを2つ用意し、データをそれぞれ取得した後データを更新かけてみます。こうすると、1つめのcachedRowSetを更新した後、2つめのcachedRowSetはオブジェクト内のデータとDBのレコードにずれが出るので、一番最後の文である<code>cachedRowSet2.acceptChanges();</code>を実行したときに例外が投げられます。</p>
+
+<p>それが、<code>SyncProviderException</code>です。これをcatchしてコンフリクトを解決させようとしました。下記はほとんどOracleのサンプルコードのままです。</p>
+
+<p>``` java
+} catch (SyncProviderException spe){</p>
+
+<pre><code>System.out.println("conflict detected.");
+
+SyncResolver resolver = spe.getSyncResolver();
+
+Object crsValue;
+Object resolverValue;
+Object resolvedValue;
+
+try {
+    while (resolver.nextConflict()) {
+
+        if (resolver.getStatus() == SyncResolver.UPDATE_ROW_CONFLICT) {
+            int row = resolver.getRow();
+            cachedRowSet2.absolute(row);
+
+            int colCount = cachedRowSet2.getMetaData().getColumnCount();
+            for (int j = 1; j &lt;= colCount; j++) {
+                System.out.println("conflict value: " + resolver.getConflictValue(j));
+                if (resolver.getConflictValue(j) != null) {
+                    crsValue = cachedRowSet2.getObject(j);
+                    resolverValue = resolver.getConflictValue(j);
+
+                    resolvedValue = crsValue;
+
+                    resolver.setResolvedValue(j, resolvedValue);
+                    System.out.println("conflict resolved.");
+                }
+            }
+        }
+    }
+} catch (SQLException e) {
+    e.printStackTrace();
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>ただ、これは実際にはうまく動作させることができていません。
+下記のようになってしまい、conflictが検知できるものの、実際にループを回すとコンフリクトが生じているデータが取得できず、そのままループが終わってしまいます。</p>
+
+<p><code>
+conflict detected.
+conflict value: null
+conflict value: null
+conflict value: null
+conflict value: null
+conflict value: null
+</code></p>
+
+<p>結果としては、1つ目の更新が反映され、2つ目の更新は無視されるという挙動になります。
+これがMySQLとかConnector-Jの実装によるものなのか、私が書いたコードの問題なのかは結局のところ分かりませんでした。</p>
+
+<h2>JoinRowSet: 2つのRowSetからテーブル同士のJOINと同等のことを行う</h2>
+
+<p>もう一つの興味深い機能である、RowSetのジョイン機能も試してみました。</p>
+
+<p>```
+mysql> SELECT * FROM COFFEES;
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| COF_NAME           | SUP_ID | PRICE | SALES | TOTAL |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| Amaretto           |    101 |  5.99 |     0 |     0 |
+| Amaretto_decaf     |     49 | 10.99 |     0 |     0 |
+| Colombian          |    101 |  0.07 |     0 |     0 |
+| Colombian_Decaf    |    101 |  8.99 |     0 |     0 |
+| Espresso           |    150 |  9.99 |     0 |     0 |
+| French_Roast       |     49 |  8.99 |     0 |     0 |
+| French_Roast_Decaf |     49 |  9.99 |     0 |     0 |
+| Hazelnut           |     49 |  9.99 |     0 |     0 |
+| Hazelnut_decaf     |     49 | 10.99 |     0 |     0 |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+9 rows in set (0.00 sec)</p>
+
+<p>mysql> SELECT * FROM SUPPLIERS;
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| SUP_ID | SUP_NAME                  | STREET              | CITY         | STATE | ZIP   |
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+|     49 | Superior Coffee           | 1 Party Place       | Mendocino    | CA    | 95460 |
+|    101 | Acme, Inc.                | 99 Market Street    | Groundsville | CA    | 95199 |
+|    150 | The High Ground           | 100 Coffee Lane     | Meadows      | CA    | 93966 |
+|    456 | Restaurant Supplies, Inc. | 200 Magnolia Street | Meadows      | CA    | 93966 |
+|    927 | Professional Kitchen      | 300 Daisy Avenue    | Groundsville | CA    | 95199 |
++&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+5 rows in set (0.00 sec)
+```</p>
+
+<p>このように、COFFEESテーブルとSUPPLIERテーブルがあるとして、サプライヤー名を指定したときにそのIDをキーにしてコーヒーリストから商品名を持ってきたい・・・というようなケースはテーブルジョインのよくあるケースです。その際、普通は</p>
+
+<p><code>sql
+SELECT c.COF_NAME
+FROM COFFEES AS c, SUPPLIERS AS s
+WHERE c.SUP_ID = s.SUP_ID
+AND SUP_NAME = "Acme, Inc."
+</code></p>
+
+<p>などとやるのが普通ですが、これを各テーブルのRowSetをJoinRowSetを使ってJavaコード内でジョインさせることができます。</p>
+
+<p>``` java
+coffees = new CachedRowSetImpl();
+coffees.setCommand(&ldquo;SELECT * FROM COFFEES&rdquo;);
+coffees.execute(connection);</p>
+
+<p>suppliers = new CachedRowSetImpl();
+suppliers.setCommand(&ldquo;SELECT * FROM SUPPLIERS&rdquo;);
+suppliers.execute(connection);</p>
+
+<p>jrs = new JoinRowSetImpl();
+jrs.addRowSet(coffees, &ldquo;SUP_ID&rdquo;);
+jrs.addRowSet(suppliers, &ldquo;SUP_ID&rdquo;);</p>
+
+<p>System.out.println(&ldquo;Coffees bought from &rdquo; + supplierName + &ldquo;: &rdquo;);
+while (jrs.next()) {</p>
+
+<pre><code>if (jrs.getString("SUP_NAME").equals(supplierName)) {
+    String coffeeName = jrs.getString(1);
+    System.out.println("     " + coffeeName);
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p>これでJOINしたSQLと同等の結果が得られます。</p>
+
+<p>実際には使う機会は多くなさそうですが、データベースをシャーディングしていて別データベースにあるテーブルをJOINしたい場合などには便利に使えると思いました。</p>
+
+<p>今回のソースはこちらです。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(6) トランザクション]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/29/dig-into-jdbc-6/"/>
+    <updated>2013-05-29T08:50:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/29/dig-into-jdbc-6</id>
+    <content type="html"><![CDATA[<h2>一般的なトランザクション処理の流れ</h2>
+
+<p>複数の処理をまとめてコミットorロールバックできるトランザクション機能。JDBCでの基本フローを試してみます。
+前回と同様下記の内容を参考にしています。</p>
+
+<p>Using Transactions (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html</a></p>
+
+<p>下記のようなレコードがあるとして、
+<code>
+mysql&gt; SELECT * FROM COFFEES WHERE COF_NAME IN ("Amaretto", "Espresso");
++----------+--------+-------+-------+-------+
+| COF_NAME | SUP_ID | PRICE | SALES | TOTAL |
++----------+--------+-------+-------+-------+
+| Amaretto |     49 |  9.99 |     0 |     0 |
+| Espresso |    150 |  9.99 |     0 |     0 |
++----------+--------+-------+-------+-------+
+2 rows in set (0.00 sec)
+</code></p>
+
+<p>これらのPRICEをひとまとまりで更新してみます。</p>
+
+<p>``` java
+try {</p>
+
+<pre><code>context = new InitialContext();
+DataSource dataSource = (DataSource)context.lookup("java:comp/env/jdbc/continuousops");
+connection = dataSource.getConnection();
+
+connection.setAutoCommit(false);
+
+preparedStatement1 = connection.prepareStatement("UPDATE COFFEES SET PRICE=? WHERE COF_NAME = 'Amaretto' LIMIT 1");
+preparedStatement2 = connection.prepareStatement("UPDATE COFFEES SET PRICE=? WHERE COF_NAME = 'Espresso' LIMIT 1");
+
+preparedStatement1.setFloat(1, 7.99f);
+preparedStatement1.executeUpdate();
+
+preparedStatement2.setFloat(1, 6.99f);
+preparedStatement2.executeUpdate();
+
+connection.commit();
+</code></pre>
+
+<p>} catch (NamingException | SQLException e) {</p>
+
+<pre><code>connection.rollback();
+e.printStackTrace();
+</code></pre>
+
+<p>}finally{</p>
+
+<pre><code>connection.setAutoCommit(true);
+</code></pre>
+
+<p>}
+```</p>
+
+<p>実行結果
+<code>
+mysql&gt; SELECT * FROM COFFEES WHERE COF_NAME IN ("Amaretto", "Espresso");
++----------+--------+-------+-------+-------+
+| COF_NAME | SUP_ID | PRICE | SALES | TOTAL |
++----------+--------+-------+-------+-------+
+| Amaretto |     49 |  7.99 |     0 |     0 |
+| Espresso |    150 |  6.99 |     0 |     0 |
++----------+--------+-------+-------+-------+
+2 rows in set (0.00 sec)
+</code></p>
+
+<p>JDBCでのトランザクションは、</p>
+
+<ul>
+<li>connection.setAutoCommit(false)でトランザクション開始</li>
+<li>connection.commit()でコミット</li>
+<li>connection.rollback()でロールバック</li>
+<li>connection.setAutoCommit(true)で元のモードに戻す　</li>
+</ul>
+
+
+<p>というのが一連の流れです。</p>
+
+<h2>トランザクション分離レベル: REPEATABLE READ</h2>
+
+<p>トランザクションは、更新を一括で行うという意味の他に、トランザクション処理中はデータの一貫性が保証されるという意味も持っています。</p>
+
+<p><code>
+mysql&gt; show variables like '%isolation';
++---------------+-----------------+
+| Variable_name | Value           |
++---------------+-----------------+
+| tx_isolation  | REPEATABLE-READ |
++---------------+-----------------+
+1 row in set (0.00 sec)
+</code></p>
+
+<p>MySQL5.5のデフォルトのトランザクション分離レベルはREPEATABLE READです。
+JDBCのトランザクション分離レベルは使用しているデータベースの設定に従うので、下記のコードで調べてみると、</p>
+
+<p><code>java
+int isolationLevel = connection.getTransactionIsolation();
+</code></p>
+
+<p>結果は、4となります。</p>
+
+<p>Constant Field Values (Java Platform SE 7 )
+<a href="http://docs.oracle.com/javase/7/docs/api/constant-values.html#java.sql.Connection.TRANSACTION_READ_COMMITTED">http://docs.oracle.com/javase/7/docs/api/constant-values.html#java.sql.Connection.TRANSACTION_READ_COMMITTED</a></p>
+
+<p>4はREPEATABLE_READとなっているので、MySQLの設定を使っていると確認できます。</p>
+
+<p>アプリケーションによって性能を優先したい場合、一段階下げてREAD COMMITEDで運用するようにしてもよいと思います。InnoDBはREPEATABLE READでネクストキーロックをするので、INSERT性能が下がってしまうためです。</p>
+
+<h2>Rollbackする地点を指定：Sevepointの使用</h2>
+
+<p>JDBCには一歩進んだ機能として、トランザクション中の任意のポイントまでロールバックできるSavepointという仕組みが用意されています。これをConnector-Jでも使用可能か試してみます。</p>
+
+<p>下記のようなコードの場合、savepoint2まで途中でロールバックしているので、ステートメント1の更新は反映されるが、ステートメント2の更新はロールバックされているという挙動になります。</p>
+
+<p>``` java</p>
+
+<pre><code>    Savepoint savepoint1 = null;
+    Savepoint savepoint2 = null;
+    try {
+        context = new InitialContext();
+        DataSource dataSource = (DataSource)context.lookup("java:comp/env/jdbc/continuousops");
+        connection = dataSource.getConnection();
+
+        connection.setAutoCommit(false);
+
+        savepoint1 = connection.setSavepoint("point1");
+
+        preparedStatement1 = connection.prepareStatement("UPDATE COFFEES SET PRICE=? WHERE COF_NAME = 'Amaretto' LIMIT 1");
+        preparedStatement2 = connection.prepareStatement("UPDATE COFFEES SET PRICE=? WHERE COF_NAME = 'Espresso' LIMIT 1");
+
+        preparedStatement1.setFloat(1, 5.99f);
+        preparedStatement1.executeUpdate();
+
+        savepoint2 = connection.setSavepoint("point2");
+
+        preparedStatement2.setFloat(1, 7.99f);
+        preparedStatement2.executeUpdate();
+
+        connection.rollback(savepoint2);
+
+        connection.commit();
+
+    } catch (NamingException | SQLException e) {
+        try {
+            connection.rollback(savepoint1);
+</code></pre>
+
+<p>```</p>
+
+<p>実行前
+<code>
+mysql&gt; SELECT * FROM COFFEES WHERE COF_NAME IN ("Amaretto", "Espresso");
++----------+--------+-------+-------+-------+
+| COF_NAME | SUP_ID | PRICE | SALES | TOTAL |
++----------+--------+-------+-------+-------+
+| Amaretto |     49 |  9.99 |     0 |     0 |
+| Espresso |    150 |  9.99 |     0 |     0 |
++----------+--------+-------+-------+-------+
+2 rows in set (0.00 sec)
+</code></p>
+
+<p>実行後
+<code>
+mysql&gt; SELECT * FROM COFFEES WHERE COF_NAME IN ("Amaretto", "Espresso");
++----------+--------+-------+-------+-------+
+| COF_NAME | SUP_ID | PRICE | SALES | TOTAL |
++----------+--------+-------+-------+-------+
+| Amaretto |     49 |  5.99 |     0 |     0 |
+| Espresso |    150 |  9.99 |     0 |     0 |
++----------+--------+-------+-------+-------+
+2 rows in set (0.00 sec)
+</code></p>
+
+<p>1個めのUPDATEだけが適用されました。</p>
+
+<p>Savepointは、大規模なトランザクションでは使いどころがありそうです。</p>
+
+<p>今回のソースはこちらです。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter6">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter6</a></p>
+
+<p>参考：</p>
+
+<p>トランザクション分離レベル &ndash; Wikipedia
+<a href="http://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A9%E3%83%B3%E3%82%B6%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E5%88%86%E9%9B%A2%E3%83%AC%E3%83%99%E3%83%AB">http://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A9%E3%83%B3%E3%82%B6%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E5%88%86%E9%9B%A2%E3%83%AC%E3%83%99%E3%83%AB</a></p>
+
+<p>MySQL5 分離レベル　～ transaction_isolation | QuickKnowLedge
+<a href="http://www.s-quad.com/wordpress/?p=956">http://www.s-quad.com/wordpress/?p=956</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(5) カーソルと更新]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/28/dig-into-jdbc-5/"/>
+    <updated>2013-05-28T08:20:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/28/dig-into-jdbc-5</id>
+    <content type="html"><![CDATA[<h2>Cursorの自由な移動</h2>
+
+<p>引き続き下記のページを見ていきます。後半部分の、カーソルを移動させたりrowを更新したりする部分がConnector-Jで実際にできるかどうかを確認していきます。</p>
+
+<p>Retrieving and Modifying Values from Result Sets (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html</a></p>
+
+<p>ドキュメント通りに、下記のようなテーブルがあるとします。</p>
+
+<p>```
+mysql> select * from COFFEES;
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| COF_NAME           | SUP_ID | PRICE | SALES | TOTAL |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+| Colombian          |    101 |  7.99 |     0 |     0 |
+| Colombian_Decaf    |    101 |  8.99 |     0 |     0 |
+| Espresso           |    150 |  9.99 |     0 |     0 |
+| French_Roast       |     49 |  8.99 |     0 |     0 |
+| French_Roast_Decaf |     49 |  9.99 |     0 |     0 |
++&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&mdash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+&mdash;&mdash;&mdash;&ndash;+
+5 rows in set (0.00 sec)</p>
+
+<p>mysql> show create table COFFEES\G
+<strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><em> 1. row </em></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></p>
+
+<pre><code>   Table: COFFEES
+</code></pre>
+
+<p>Create Table: CREATE TABLE <code>COFFEES</code> (
+  <code>COF_NAME</code> varchar(32) NOT NULL,
+  <code>SUP_ID</code> int(11) NOT NULL,
+  <code>PRICE</code> decimal(10,2) NOT NULL,
+  <code>SALES</code> int(11) NOT NULL,
+  <code>TOTAL</code> int(11) NOT NULL,
+  PRIMARY KEY (<code>COF_NAME</code>),
+  KEY <code>SUP_ID</code> (<code>SUP_ID</code>),
+  CONSTRAINT <code>coffees_ibfk_1</code> FOREIGN KEY (<code>SUP_ID</code>) REFERENCES <code>SUPPLIERS</code> (<code>SUP_ID</code>)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+1 row in set (0.00 sec)
+```</p>
+
+<p>まず1レコード目を取得します。</p>
+
+<p>```
+private List<HashMap> viewTable(Connection connection, String dbName) throws SQLException {</p>
+
+<pre><code>    String query = "SELECT COF_NAME, SUP_ID, PRICE, SALES, TOTAL FROM " + dbName + ".coffees" ;
+    preparedStatement = connection.prepareStatement(query);
+    resultSet = preparedStatement.executeQuery();
+    resultSet.next();
+    System.out.println("|" + resultSet.getString("COF_NAME")
+                     + "|" + resultSet.getInt("SUP_ID")
+                     + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>```</p>
+
+<p><code>
+|Colombian|101|7.99|
+</code></p>
+
+<p>2レコード進んで取得します。
+```
+resultSet.next();
+resultSet.next();
+System.out.println(&ldquo;|&rdquo; + resultSet.getString(&ldquo;COF_NAME&rdquo;)</p>
+
+<pre><code>             + "|" + resultSet.getInt("SUP_ID")
+             + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>```</p>
+
+<p><code>
+|Espresso|150|9.99|
+</code></p>
+
+<p>1レコード戻ります。
+```
+resultSet.previous();
+System.out.println(&ldquo;|&rdquo; + resultSet.getString(&ldquo;COF_NAME&rdquo;)</p>
+
+<pre><code>    + "|" + resultSet.getInt("SUP_ID")
+    + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>```</p>
+
+<p><code>
+|Colombian_Decaf|101|8.99|
+</code></p>
+
+<p>最後のレコードに飛びます。
+```
+resultSet.last();
+System.out.println(&ldquo;|&rdquo; + resultSet.getString(&ldquo;COF_NAME&rdquo;)</p>
+
+<pre><code>    + "|" + resultSet.getInt("SUP_ID")
+    + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>```</p>
+
+<p><code>
+|French_Roast_Decaf|49|9.99|
+</code></p>
+
+<p>4レコード目にジャンプします。
+```
+resultSet.absolute(4);
+System.out.println(&ldquo;|&rdquo; + resultSet.getString(&ldquo;COF_NAME&rdquo;)</p>
+
+<pre><code>    + "|" + resultSet.getInt("SUP_ID")
+    + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>```</p>
+
+<p><code>
+|French_Roast|49|8.99|
+</code></p>
+
+<p>カーソルを最後まで進めます。その次は無いのでnext()でfalseになるはず。
+<code>
+resultSet.afterLast();
+System.out.println(resultSet.next());
+</code></p>
+
+<p><code>
+false
+</code></p>
+
+<p>期待通りの結果が得られました。</p>
+
+<h2>ResultSetを直接Update</h2>
+
+<p>使うかどうか分かりませんが、ResultSetからrowを直接更新する方法も用意されています。</p>
+
+<p>``` java
+private void updateTable(Connection connection, String dbName) throws SQLException {</p>
+
+<pre><code>    float percentage = 0.3f;
+    String query = "SELECT cof_name, sup_id, price, sales, total FROM " + dbName + ".coffees" ;
+    preparedStatement = connection.prepareStatement(query);
+    resultSet = preparedStatement.executeQuery();
+    resultSet.next();
+    System.out.println("|" + resultSet.getString("COF_NAME")
+            + "|" + resultSet.getInt("SUP_ID")
+            + "|" + resultSet.getBigDecimal("PRICE") + "|");
+    float f = resultSet.getFloat("PRICE");
+    resultSet.updateFloat("PRICE", f * percentage);
+    resultSet.updateRow();
+    System.out.println("|" + resultSet.getString("COF_NAME")
+            + "|" + resultSet.getInt("SUP_ID")
+            + "|" + resultSet.getBigDecimal("PRICE") + "|");
+}
+</code></pre>
+
+<p>```</p>
+
+<p>ただ、これをそのまま実行しようとするとエラーになります。属性が<code>CONCUR_UPDATABLE</code>である必要があるのですが、昨日みたように、デフォルトは<code>CONCUR_READ_ONLY</code>だからです。
+```
+com.mysql.jdbc.NotUpdatable: Result Set not updatable.This result set must come from a statement that was created with a result set type of ResultSet.CONCUR_UPDATABLE, the query must select only one table, can not use functions and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.This result set must come from a statement that was created with a result set type of ResultSet.CONCUR_UPDATABLE, the query must select only one table, can not use functions and must select all primary keys from that table. See the JDBC 2.1 API Specification, section 5.6 for more details.</p>
+
+<pre><code>at com.mysql.jdbc.ResultSetImpl.updateFloat(ResultSetImpl.java:8319)
+</code></pre>
+
+<p>```</p>
+
+<p>CONCUR_UPDATABLEにしてやってみます。サンプル通りStatementオブジェクトを使ってしまいましたが、PreparedStatementにしたければprepareCall()の中でCONCUR_UPDATEBLEを指定すればいけると思います。</p>
+
+<p>``` java
+private void updateTableRevised(Connection connection, String dbName) throws SQLException {</p>
+
+<pre><code>float percentage = 0.3f;
+String query = "SELECT cof_name, sup_id, price, sales, total FROM " + dbName + ".coffees" ;
+Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+resultSet = statement.executeQuery(query);
+resultSet.next();
+System.out.println("|" + resultSet.getString("COF_NAME")
+        + "|" + resultSet.getInt("SUP_ID")
+        + "|" + resultSet.getBigDecimal("PRICE") + "|");
+float f = resultSet.getFloat("PRICE");
+resultSet.updateFloat("PRICE", f * percentage);
+resultSet.updateRow();
+System.out.println("|" + resultSet.getString("COF_NAME")
+        + "|" + resultSet.getInt("SUP_ID")
+        + "|" + resultSet.getBigDecimal("PRICE") + "|");
+</code></pre>
+
+<p>}
+```</p>
+
+<p><code>
+|Colombian|101|2.40|
+|Colombian|101|0.72|
+</code>
+更新できました。</p>
+
+<h2>executeBatch()による更新</h2>
+
+<p>batchによる更新もサポートされています。
+```
+public void batchUpdate(Connection connection) throws SQLException {</p>
+
+<pre><code>Statement stmt = null;
+try {
+    connection.setAutoCommit(false);
+    stmt = connection.createStatement();
+
+    stmt.addBatch(
+            "INSERT INTO COFFEES " +
+                    "VALUES('Amaretto', 49, 9.99, 0, 0)");
+
+    stmt.addBatch(
+            "INSERT INTO COFFEES " +
+                    "VALUES('Hazelnut', 49, 9.99, 0, 0)");
+
+    stmt.addBatch(
+            "INSERT INTO COFFEES " +
+                    "VALUES('Amaretto_decaf', 49, " +
+                    "10.99, 0, 0)");
+
+    stmt.addBatch(
+            "INSERT INTO COFFEES " +
+                    "VALUES('Hazelnut_decaf', 49, " +
+                    "10.99, 0, 0)");
+
+    int [] updateCounts = stmt.executeBatch();
+    System.out.println(updateCounts);
+    connection.commit();
+
+} catch(BatchUpdateException b) {
+    b.printStackTrace();
+} catch(SQLException ex) {
+    ex.printStackTrace();
+} finally {
+    if (stmt != null) { stmt.close(); }
+    connection.setAutoCommit(true);
+}
+</code></pre>
+
+<p>}
+```</p>
+
+<p><code>
+mysql&gt; select * from COFFEES;
++--------------------+--------+-------+-------+-------+
+| COF_NAME           | SUP_ID | PRICE | SALES | TOTAL |
++--------------------+--------+-------+-------+-------+
+| Amaretto           |     49 |  9.99 |     0 |     0 |
+| Amaretto_decaf     |     49 | 10.99 |     0 |     0 |
+| Colombian          |    101 |  0.07 |     0 |     0 |
+| Colombian_Decaf    |    101 |  8.99 |     0 |     0 |
+| Espresso           |    150 |  9.99 |     0 |     0 |
+| French_Roast       |     49 |  8.99 |     0 |     0 |
+| French_Roast_Decaf |     49 |  9.99 |     0 |     0 |
+| Hazelnut           |     49 |  9.99 |     0 |     0 |
+| Hazelnut_decaf     |     49 | 10.99 |     0 |     0 |
++--------------------+--------+-------+-------+-------+
+</code></p>
+
+<p>これはトランザクションではないようなので使いどころがいまいち分かりませんが、名前の通りバッチ処理をする際に少しでも実行時間を短縮するために使えるのかもしれません。</p>
+
+<p>今日のソースはこちらです。
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter5">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter5</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(4) ResultSetの特性]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/27/dig-into-jdbc-4/"/>
+    <updated>2013-05-27T23:23:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/27/dig-into-jdbc-4</id>
+    <content type="html"><![CDATA[<h2>MySQL-Connector-J 5.1のResultSetの実装</h2>
+
+<p>前回SELECTクエリを発行したときに、ResultSetというオブジェクトが返ってくるのでクエリ結果はそこから取り出すということをやりました。</p>
+
+<p>Oracle公式のドキュメントを読んでみるとResultSetは多くの機能をサポートしていますが、MySQLのconnector-Jで全てサポートしているかどうかがよく分からなかったので調べてみました。複数の機能の切り替えをサポートしている場合、切り替えることでパフォーマンスが改善する可能性が考えられるからです。</p>
+
+<p>Retrieving and Modifying Values from Result Sets (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html</a></p>
+
+<p>このドキュメントページによると、ResultSetが提供する特性(characteristics)には、Types, Concurrency, Holdabilityの3種類があります。</p>
+
+<h2>ResultSet Types</h2>
+
+<p>カーソルがどのように操作されるかと、並行実行された変更が反映されるかどうかの違いによって3種類あるようです。<a href="http://docs.oracle.com/javase/jp/1.4/guide/jdbc/getstart/resultset.html">日本語訳を引用</a>します。</p>
+
+<pre><code> TYPE_FORWARD_ONLY
+ 結果セットは、スクロール不可能です。カーソルは上から下へ、順方向にのみ移動します。
+ 結果セット内のデータの見え方は、DBMS が結果をインクリメンタルに生成するかどうかに依存します。
+
+ TYPE_SCROLL_INSENSITIVE
+ 結果セットはスクロール可能です。 カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
+ 一般に、結果セットは、基となるデータベースが開いている間に行われた変更を表しません。 一般に、行のメンバシップ、順序、および列値は、結果セットの作成時に固定されます。
+
+ TYPE_SCROLL_SENSITIVE
+ 結果セットはスクロール可能です。カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
+ 結果セットは、開いている間に行われた変更を反映します。 基となる列値が変更されると、新たな値が反映されます。つまり、基となるデータの動的なビューを提供します。 結果セットに含まれる行とその順序は、実装によって固定されることも、されないこともあります。
+</code></pre>
+
+<p>Connector-Jの現行バージョンではどれなのか調べてみました。</p>
+
+<p><code>java
+DatabaseMetaData databaseMetaData = connection.getMetaData();
+System.out.printf("[TYPE_FORWARD_ONLY]%s%n", databaseMetaData.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY));
+System.out.printf("[TYPE_SCROLL_INSENSITIVE]%s%n", databaseMetaData.supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE));
+System.out.printf("[TYPE_SCROLL_SENSITIVE]%s%n", databaseMetaData.supportsResultSetType(ResultSet.TYPE_SCROLL_SENSITIVE));
+</code></p>
+
+<p>結果
+<code>
+[TYPE_FORWARD_ONLY]false
+[TYPE_SCROLL_INSENSITIVE]true
+[TYPE_SCROLL_SENSITIVE]false
+</code></p>
+
+<p>TYPE_SCROLL_INSENSITIVEのみがサポートされています。</p>
+
+<h2>ResultSet Concurrency 並行処理のタイプ</h2>
+
+<p>次は結果セットを更新可能かどうかです。</p>
+
+<pre><code> CONCUR_READ_ONLY
+ プログラム的に更新不可能な結果セットを示します。
+ JDBC 1.0 API だけを実装するドライバから利用可能な並行処理のタイプ
+ 最高レベルの並行処理を提供します (同時使用可能なユーザ数を最大にします)。 読み取り専用の並行処理が可能な ResultSet オブジェクトでロックを設定する場合には、読み取り専用ロックが使用されます。 これにより、ユーザはデータを読み取ることができますが、変更はできません。 データに対して同時に設定可能な読み取り専用ロックの数は無制限であるため、DBMS またはドライバが制限を課さない限り、同時使用するユーザ数には制限がありません。
+
+ CONCUR_UPDATABLE
+ プログラム的に更新可能な結果セットを示します。
+ JDBC 2.0 コア API を実装するドライバから利用可能
+ 並行処理のレベルを低下させます。 一度にデータ項目にアクセス可能なユーザを 1 人だけに限定する場合、更新可能な結果セットは書き込み専用ロックを使用します。 これにより、2 人以上のユーザが同じデータを変更する可能性が排除されるため、データベースの一貫性が保証されます。 ただし、この一貫性の代償として、並行処理のレベルが低下します。
+</code></pre>
+
+<p>これもサポート状況を調べてみました。
+<code>
+System.out.printf("[CONCUR_READ_ONLY]%s%n", databaseMetaData.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
+System.out.printf("[CONCUR_UPDATABLE]%s%n", databaseMetaData.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE));
+</code></p>
+
+<p>結果
+<code>
+[CONCUR_READ_ONLY]true
+[CONCUR_UPDATABLE]true
+</code></p>
+
+<p>両方サポートしているようです。デフォルトはCONCUR_READ_ONLYです。</p>
+
+<h2>ResultSet Cursor Holdability</h2>
+
+<p>Cursor Holdabilityというのは、トランザクションをコミットしたときに通常はカーソルがクローズされるものを、保持しておくことを可能にするか否かのオプションのようです。</p>
+
+<pre><code> HOLD_CURSORS_OVER_COMMIT
+ 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがクローズする。
+
+ CLOSE_CURSORS_AT_COMMIT
+ 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがオープンしたままになる。
+</code></pre>
+
+<p>これも同様にサポート状況を調べてみました。</p>
+
+<p>```
+DatabaseMetaData dbMetaData = connection.getMetaData();
+System.out.println(&ldquo;ResultSet.HOLD_CURSORS_OVER_COMMIT = &rdquo; +</p>
+
+<pre><code>      ResultSet.HOLD_CURSORS_OVER_COMMIT);
+</code></pre>
+
+<p>System.out.println(&ldquo;ResultSet.CLOSE_CURSORS_AT_COMMIT = &rdquo; +</p>
+
+<pre><code>      ResultSet.CLOSE_CURSORS_AT_COMMIT);
+</code></pre>
+
+<p>System.out.println(&ldquo;Default cursor holdability: &rdquo; +</p>
+
+<pre><code>      dbMetaData.getResultSetHoldability());
+</code></pre>
+
+<p>System.out.println(&ldquo;Supports HOLD_CURSORS_OVER_COMMIT? &rdquo; +</p>
+
+<pre><code>      dbMetaData.supportsResultSetHoldability(
+                ResultSet.HOLD_CURSORS_OVER_COMMIT));
+</code></pre>
+
+<p>System.out.println(&ldquo;Supports CLOSE_CURSORS_AT_COMMIT? &rdquo; +</p>
+
+<pre><code>      dbMetaData.supportsResultSetHoldability(
+                ResultSet.CLOSE_CURSORS_AT_COMMIT));
+</code></pre>
+
+<p>```</p>
+
+<p>結果
+<code>java
+ResultSet.HOLD_CURSORS_OVER_COMMIT = 1
+ResultSet.CLOSE_CURSORS_AT_COMMIT = 2
+Default cursor holdability: 1
+Supports HOLD_CURSORS_OVER_COMMIT? true
+Supports CLOSE_CURSORS_AT_COMMIT? false
+</code></p>
+
+<p>通常、コミットされたらカーソルをクローズしてくれたほうがいいように直感的には思いますが、</p>
+
+<pre><code> Holdable cursors might be ideal if your application uses mostly read-only ResultSet objects.
+</code></pre>
+
+<p>とのことなので、トランザクションの実行に関わらず読み取りを高速に行いたい場合が考慮されているのかもしれません。そもそもカーソルのクローズは自動的にされるか、明示的に呼ぶと思いますので、よほど長い処理でない限りはどちらでも大差ない気はします。</p>
+
+<p>基本的にはデフォルトのまま使うので問題ないように思いますが、このへんはMySQLの設定のほうにあるトランザクションの分離レベルとも関わってくると思うのですが、今回調べただけだとどう影響しあうかがよく分かりませんでした。</p>
+
+<p>次回ももう少しこのへんを深掘りしてみます。</p>
+
+<p>今回のソースはこちら。
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/05/24/dig-into-jdbc-3/"/>
+    <updated>2013-05-24T09:05:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/05/24/dig-into-jdbc-3</id>
+    <content type="html"><![CDATA[<h2>SQL発行の基本的な手順</h2>
+
+<p>前回はデータベースに接続し、そのまま切断しただけでしたが、今回はWriteとReadの処理を1回ずつやってみます。</p>
+
+<p>ソースはこちらです。
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter3</a></p>
+
+<p>基本的にはPHPのPDOやPerlのPythonのMySQLdbなどとクエリの発行の構造は同じで、PrepareStatementというオブジェクトを使います。</p>
+
+<p>ConnectionオブジェクトからPrepareedStatementを作成し、そこからクエリを実行、という流れです。</p>
+
+<p>参考：
+Using Prepared Statements (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/prepared.html</a></p>
+
+<h2>INSERT文:executeUpdate()メソッドを使う:戻り値は処理レコード数</h2>
+
+<p>``` java
+private void insertRecord(Connection connection) throws SQLException {</p>
+
+<pre><code>PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO address (name, address, tel, email) VALUES(?, ?, ?, ?)");
+preparedStatement.setString(1, getParameter("name"));
+preparedStatement.setString(2, getParameter("address"));
+preparedStatement.setString(3, getParameter("tel"));
+preparedStatement.setString(4, getParameter("email"));
+preparedStatement.executeUpdate();
+preparedStatement.close();
+</code></pre>
+
+<p>}</p>
+
+<p>```</p>
+
+<p>connection.prepareStatement()メソッド内でSQLを記述し、"?&ldquo;をプレイスホルダとして使います。&rdquo;?&ldquo;の部分はsetXXXX()メソッド(XXXXの部分は型が入る)のなかで番号に対応する形で値を入れています。</p>
+
+<p>INSERT/UPDATE/DELETE文の発行はexecuteUpdate()メソッドを使います。</p>
+
+<pre><code>疑問：JDBCにはキーワード付プレイスホルダは無いんでしょうか？
+</code></pre>
+
+<h2>SELECT文:executeQuery()メソッドを使う:戻り値はResultSet</h2>
+
+<p>``` java
+private HashMap selectRecord(Connection connection) throws SQLException {</p>
+
+<pre><code>PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM address LIMIT 1");
+ResultSet resultSet = preparedStatement.executeQuery();
+HashMap&lt;String, String&gt; map = new HashMap&lt;&gt;();
+if(resultSet.next()){
+    map.put("name-1", resultSet.getString("name"));
+    map.put("address-1", resultSet.getString("address"));
+    map.put("tel-1", resultSet.getString("tel"));
+    map.put("email-1", resultSet.getString("email"));
+}
+preparedStatement.close();
+return map;
+</code></pre>
+
+<p>}
+```</p>
+
+<p>SELECT文も、connection.prepareStatement()メソッド内でSQLを記述します。</p>
+
+<p>SELECT文の実行には、executeQuery()メソッドを使います。このメソッドはResultSetオブジェクトが返るので、resultSet.next()でループして結果を取得します。</p>
+
+<p>今回はPreparedStatementを使いましたが、下記のように単純なStatementオブジェクトで記述することもできます。</p>
+
+<p>``` java
+Statement statement = null;
+String query = &ldquo;SELECT * FROM address LIMIT 1&rdquo;;</p>
+
+<p>try {</p>
+
+<pre><code>statement = connection.createStatement();
+ResultSet resultSet = statement.executeQuery(query);
+</code></pre>
+
+<p>(以下略)
+```</p>
+
+<p>Statementとその派生クラスには3種類あります。</p>
+
+<ul>
+<li>Statement         パラメータを持たない単純なSQLの実行</li>
+<li>PreparedStatement SQLをプリコンパイルして実行する</li>
+<li>CallableStatement プロシージャを呼び出すときに使う</li>
+</ul>
+
+
+<p>StatementよりPreparedStaementのほうが高速な場合が多いので、SELECT/INSERT/UPDATE/DELETE文のSQLの実行にはPreparedStatementを使うとおぼえておいて基本的に間違いないと思います。</p>
+
+<p>StatementオブジェクトはGCによって自動的にクローズされますが、明示的にclose()を呼んでおくのが良いようです。今回は明示的にclose()を呼んでいます。</p>
+
+<p>ひとまずシンプルにINSERTとSELECTを行なってみました。
+次回はSELECTの最適化・高速化という観点から、ResultSetオブジェクトの扱いについて詳しくみてみます。</p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+]]></content>
+  </entry>
+  
+</feed>

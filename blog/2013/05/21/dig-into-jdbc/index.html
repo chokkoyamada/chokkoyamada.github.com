@@ -1,0 +1,308 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>最速ウェブアプリのためのJDBC再入門(1) - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="Javaの記事はどれも古い！ Javaを仕事で書けるようになるためにあらためて勉強しているのですが、Javaの記事をぐぐってみると古い記事があたることが多いです。 Javaは後方互換性に優れているので10年前の記事でも余裕で参考になるのですが、 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/05/21/dig-into-jdbc">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">最速ウェブアプリのためのJDBC再入門(1)</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-21T21:40:00+09:00" pubdate data-updated="true">May 21<span>st</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>Javaの記事はどれも古い！</h2>
+
+<p>Javaを仕事で書けるようになるためにあらためて勉強しているのですが、Javaの記事をぐぐってみると古い記事があたることが多いです。</p>
+
+<p>Javaは後方互換性に優れているので10年前の記事でも余裕で参考になるのですが、それでも例えば2003年の記事を読んだだけだと現在の状況にどこまで適用してよい話なのか不安が残ります。</p>
+
+<p>Oracleの公式ドキュメントをあたってみても、全てが日本語訳されているわけではなく、重い腰あげて読み込まないとなという気持ちがします。</p>
+
+<p>いまの私の仕事は運用エンジニアということもあってJavaのアプリケーションコードを自分で書いてはいないのですが、重要な場面ではコードの細部まで追って対応できることが不可欠。その中でもデータベース周りはクリティカルに効いてくることが多いので、深く理解しておきたいと思っています。</p>
+
+<h2>Java(Servlet + JDBC(Connector-J))は相当速い</h2>
+
+<p>最近、下記のウェブアプリケーションのベンチマークが話題になりました。</p>
+
+<p><a href="http://www.techempower.com/benchmarks/">http://www.techempower.com/benchmarks/</a></p>
+
+<p>これを見ると、JavaのServletは常に上位にいます。
+私自身の最近の仕事の経験からしても、Servlet+JDBCの組み合わせはかなりのスループットが出ます。チューニングしていくたびにどんどん速くなってきたし、まだ速くする余地がかなりあるんじゃないかと思っています。</p>
+
+<p>ベンチマークのソースを見たのですが、DataSourceのオプションなどはかなり参考になります。</p>
+
+<p><a href="https://github.com/TechEmpower/FrameworkBenchmarks/">https://github.com/TechEmpower/FrameworkBenchmarks/</a></p>
+
+<p>Javaでウェブアプリケーションを書くことが常にベストの選択とは思いませんが、レスポンスタイムとスループットを安定して出したい場合の選択としてはかなりいい線行ってると思います。これをもっと極めていきたいです。</p>
+
+<p>そこで、シリーズものとして、JavaのデータベースライブラリであるJDBCについてまとまったものを書いてみたいと思います。JDBCの基礎から始めて、1台あたり1000req/secを<a href="http://www.slideshare.net/Satully/jaws2013lt-1000qps">50msec以内で安定して返し続けるサーバー</a>に必要なチューニングまで、順にステップアップしながら自分自身の勉強を兼ねて書いていきます。</p>
+
+<h2>環境は、CentOS6 &ndash; Java7 &ndash; tomcat7 &ndash; JDBC5.1 &ndash; MySQL5.5</h2>
+
+<p>前提となる環境ですが、まずサーバーはMac OS X 10.7のローカルで開発しつつ適宜<a href="http://www.vagrantbox.es">VagrantでCentoS 6.3</a>を起動して使います。ある程度細かくベンチマークを取りたい場合はAWSで<a href="http://aws.amazon.com/jp/amazon-linux-ami/">Amazon Linux(最新版)</a>を使います。</p>
+
+<p>Javaはバージョン1.7で<a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html">Oracle公式のJDK</a>を使います。
+アプリケーションサーバーは<a href="http://tomcat.apache.org/tomcat-7.0-doc/">tomcatのバージョン7</a>、JDBCドライバは<a href="http://mvnrepository.com/artifact/mysql/mysql-connector-java">mysql-connector-java</a>の5.1系です。
+<a href="http://dev.mysql.com/doc/refman/5.5/en/index.html">MySQLは5.5</a>です。</p>
+
+<p>まずはOracle公式やその他の入門記事に沿って簡単なウェブアプリを作っていきながらひと通りのJDBCの機能を使っていきます。</p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-21T21:40:00+09:00" pubdate data-updated="true">May 21<span>st</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/jdbc/'>jdbc</a>, <a class='category' href='/blog/categories/mysql/'>mysql</a>, <a class='category' href='/blog/categories/tutorial/'>tutorial</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/05/21/dig-into-jdbc/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/05/21/dig-into-jdbc/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/05/20/vagrant-berkshelf-graphite-install/" title="Previous Post: BerkshelfとVagrantの連携(2)">&laquo; BerkshelfとVagrantの連携(2)</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/23/dig-into-jdbc-2-create-project/" title="Next Post: 最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成">最速ウェブアプリのためのJDBC再入門(2) プロジェクト作成 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: backlog | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/backlog/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2013-11-18T18:24:43+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/"/>
+    <updated>2013-11-18T16:23:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/11/18/web-api-hackathon-3-backlog-kanban</id>
+    <content type="html"><![CDATA[<h2>Web Api Hackathon Vol.3</h2>
+
+<p>2013/11/17に行われた、<a href="http://connpass.com/series/533/">Web Api Hackathon</a>に行ってきました。私は初参加でしたが、もう3回目で、とりあえずWeb Api叩いて何か作ろうというざっくりしたテーマで行うハッカソン形式のイベントです。
+<a href="http://ma9.mashupaward.jp/">Mashup Award</a>のコンセプトにも近いですね。</p>
+
+<p>場所はお台場にある<a href="http://www.members.co.jp/company/access.html">Membersさんのオフィス</a>のラウンジ。机やお座敷やソファのあるかなり大きなスペースで、中央には大きなプロジェクタがあって、裏の隠れたところに昼寝スペースという、個人的にはかなりお気に入りのスペースでした。
+リラックマの超大きなぬいぐるみがあったのも印象的でした(写真撮影NGだったのが残念・・・)。</p>
+
+<h2>Backlog Kanban &ndash; カンバン形式でBacklogのプロジェクトを見る</h2>
+
+<p><a href="http://www.backlog.jp">Backlog</a> というプロジェクト管理ツールがあって、仕事でも利用しています。
+1プロジェクト、10人までは無料で使えるので、個人プロジェクトにも利用しています。
+このウェブサービスは、ポップなデザインと使いやすいインタフェース、メールに直接返信で課題が更新される、などなどでとても良いサービスなのですが、一点不満があって、それはプロジェクトの概観をしづらいということでした。</p>
+
+<p>なのでこれまではBacklogとは別に、ホワイトボードにポストイットを貼って管理していました。（<a href="http://www.infoq.com/jp/articles/agile-kanban-boards">こういうイメージ</a> ）
+ただ、これをBacklogで直接やれたらいいのにとつねづね思っていました。</p>
+
+<p>そこで、それを今回のハッカソンで作ってみようと思いたち、そうしてできたのがこちらです。</p>
+
+<h3>Backlog Kanban(デモサイト)</h3>
+
+<p><a href="http://kanban.kirishikistudios.com/">http://kanban.kirishikistudios.com/</a></p>
+
+<h3>ソース(GitHub)</h3>
+
+<p><a href="https://github.com/backlog-kanban/backlog-kanban">https://github.com/backlog-kanban/backlog-kanban</a></p>
+
+<p><img src="/images/2013-11-17-backlog-kanban.png" alt="backlog-kanban" /></p>
+
+<p>できたというか、まだ全くの開発途中ですが、一応カンバン形式で閲覧するツールとしては動作しています。</p>
+
+<p><a href="http://www.backlog.jp/api/">Backlog API</a> を使って課題の一覧を取得し、新しいUIに落としただけ、という簡単なものですが、「これがやりたかったんだよ！！」というのができた気がします。</p>
+
+<p>「スケジュールが過ぎたものは赤色で表示される」「課題の種別によって色分け」「課題をクリックするとBacklog本体の課題のぺーじに飛ぶ」などの機能があります。もちろん、Backlog本体側を更新すればその内容はこちらに即座に反映されます。</p>
+
+<p>使った技術はこちら。</p>
+
+<ul>
+<li>Amazon EC2 (Amazon Linux, micro instance)</li>
+<li>Ruby 2.0</li>
+<li>Ruby on Rails 4.0.1</li>
+<li>rbenv</li>
+<li>apache + passenger</li>
+</ul>
+
+
+<p>プレゼン資料はこちら。</p>
+
+<iframe src="http://www.slideshare.net/slideshow/embed_code/28331762" width="427" height="356" frameborder="0" marginwidth="0" marginheight="0" scrolling="no" style="border:1px solid #CCC;border-width:1px 1px 0;margin-bottom:5px" allowfullscreen> </iframe>
+
+
+<p> <div style="margin-bottom:5px"> <strong> <a href="https://www.slideshare.net/mima_v/20131117-backlog-kanban" title="20131117 backlog kanban【第３回Web API ハッカソン】" target="_blank">20131117 backlog kanban【第３回Web API ハッカソン】</a> </strong> from <strong><a href="http://www.slideshare.net/mima_v" target="_blank">Marie Suenaga</a></strong> </div></p>
+
+<p>今後は、</p>
+
+<ul>
+<li>Backlogアカウントによるログインと閲覧の認証</li>
+<li>課題の追加・編集機能</li>
+<li>カテゴリや種別の追加・変更への対応</li>
+</ul>
+
+
+<p>などができるとよいと思います。</p>
+
+<h2>デザイン・フロント・サーバーの3人で開発してみて</h2>
+
+<p>ハッカソンで、初対面の人たち同士でアプリを作るということをこれまで何回かやってきましたが、本当に難しいと思います。
+各メンバーのスキルセットを理解して、何のツールなら熟知しているのか、どこの部分で境界線を引いて分担するのが良いのか、など。
+そもそも作りたいものが一致しているのかもすり合わせないといけません。</p>
+
+<p>今回チームを作ったのは3人ですが、みな初対面。
+その場で自己紹介をして、基本的な開発手法について議論と相談をして、どう作業するかを決めていきました。</p>
+
+<p>役割分担はこんな感じ。</p>
+
+<ul>
+<li><a href="https://github.com/mima-v">@mima-v</a> 全体デザイン、画像制作</li>
+<li><a href="https://github.com/oogushitakuya">@oogushitakuya</a> フロント部分(HTML,JavaScriptのコーディング)</li>
+<li><a href="https://github.com/chokkoyamada">@chokkoyamada</a> サーバーサイド(Railsを使ったBacklogAPIの操作、公開用サーバー設定)</li>
+</ul>
+
+
+<p>アイデア段階から実際のアプリ作成まで8時間弱で、何かできるか不安でしたが、各メンバーがGitHubを使ったワークフローをわかっていたおかげでスムーズに作業が進んだと思います。</p>
+
+<h2>作ったアプリを公開する場所があったらいい</h2>
+
+<p>Railsに限らずですが、何かアプリを作ったときにそれをグローバルに無料で公開できる場所が少ないなと思いました。
+Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし、他にも選択肢があると良いと思います。</p>
+
+<p>今回は結局AWSでMicroインスタンスを立ててそこにapache入れてpassenger入れて・・・とやったのですが、Microインスタンスにしてもこの１アプリだけを置いておくにはもったいないです。
+今後また別のRailsアプリを作ったらこのインスタンスにデプロイしていきたいと思います。</p>
+
+<h3>参考リンク</h3>
+
+<p>WebAPI Hackathon | デザイナー/コーダーとエンジニアが集まってWeb APIを使ってなにかを作る会  <a href="http://webapi-hackathon.info/">http://webapi-hackathon.info/</a></p>
+
+<p>Web Api Hackathon Vol.3 &ndash; connpass  <a href="http://connpass.com/event/3890/">http://connpass.com/event/3890/</a></p>
+]]></content>
+  </entry>
+  
+</feed>

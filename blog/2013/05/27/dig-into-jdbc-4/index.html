@@ -1,0 +1,439 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>最速ウェブアプリのためのJDBC再入門(4) ResultSetの特性 - Continuous Ops</title>
+  <meta name="author" content="Naoyuki Yamada">
+
+  
+  <meta name="description" content="MySQL-Connector-J 5.1のResultSetの実装 前回SELECTクエリを発行したときに、ResultSetというオブジェクトが返ってくるのでクエリ結果はそこから取り出すということをやりました。 &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/05/27/dig-into-jdbc-4">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/lib/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-41056307-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">Continuous Ops</a></h1>
+  
+    <h2>Exploring the world of 'Infrastructure as Code'</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:chokkoyamada.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">最速ウェブアプリのためのJDBC再入門(4) ResultSetの特性</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-27T23:23:00+09:00" pubdate data-updated="true">May 27<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>MySQL-Connector-J 5.1のResultSetの実装</h2>
+
+<p>前回SELECTクエリを発行したときに、ResultSetというオブジェクトが返ってくるのでクエリ結果はそこから取り出すということをやりました。</p>
+
+<p>Oracle公式のドキュメントを読んでみるとResultSetは多くの機能をサポートしていますが、MySQLのconnector-Jで全てサポートしているかどうかがよく分からなかったので調べてみました。複数の機能の切り替えをサポートしている場合、切り替えることでパフォーマンスが改善する可能性が考えられるからです。</p>
+
+<p>Retrieving and Modifying Values from Result Sets (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html</a></p>
+
+<p>このドキュメントページによると、ResultSetが提供する特性(characteristics)には、Types, Concurrency, Holdabilityの3種類があります。</p>
+
+<h2>ResultSet Types</h2>
+
+<p>カーソルがどのように操作されるかと、並行実行された変更が反映されるかどうかの違いによって3種類あるようです。<a href="http://docs.oracle.com/javase/jp/1.4/guide/jdbc/getstart/resultset.html">日本語訳を引用</a>します。</p>
+
+<pre><code> TYPE_FORWARD_ONLY
+ 結果セットは、スクロール不可能です。カーソルは上から下へ、順方向にのみ移動します。
+ 結果セット内のデータの見え方は、DBMS が結果をインクリメンタルに生成するかどうかに依存します。
+
+ TYPE_SCROLL_INSENSITIVE
+ 結果セットはスクロール可能です。 カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
+ 一般に、結果セットは、基となるデータベースが開いている間に行われた変更を表しません。 一般に、行のメンバシップ、順序、および列値は、結果セットの作成時に固定されます。
+
+ TYPE_SCROLL_SENSITIVE
+ 結果セットはスクロール可能です。カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
+ 結果セットは、開いている間に行われた変更を反映します。 基となる列値が変更されると、新たな値が反映されます。つまり、基となるデータの動的なビューを提供します。 結果セットに含まれる行とその順序は、実装によって固定されることも、されないこともあります。
+</code></pre>
+
+<p>Connector-Jの現行バージョンではどれなのか調べてみました。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DatabaseMetaData</span> <span class="n">databaseMetaData</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">getMetaData</span><span class="o">();</span>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_FORWARD_ONLY]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_FORWARD_ONLY</span><span class="o">));</span>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_SCROLL_INSENSITIVE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">));</span>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_SCROLL_SENSITIVE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_SENSITIVE</span><span class="o">));</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>結果</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">[</span><span class="n">TYPE_FORWARD_ONLY</span><span class="o">]</span><span class="kc">false</span>
+</span><span class='line'><span class="o">[</span><span class="n">TYPE_SCROLL_INSENSITIVE</span><span class="o">]</span><span class="kc">true</span>
+</span><span class='line'><span class="o">[</span><span class="n">TYPE_SCROLL_SENSITIVE</span><span class="o">]</span><span class="kc">false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>TYPE_SCROLL_INSENSITIVEのみがサポートされています。</p>
+
+<h2>ResultSet Concurrency 並行処理のタイプ</h2>
+
+<p>次は結果セットを更新可能かどうかです。</p>
+
+<pre><code> CONCUR_READ_ONLY
+ プログラム的に更新不可能な結果セットを示します。
+ JDBC 1.0 API だけを実装するドライバから利用可能な並行処理のタイプ
+ 最高レベルの並行処理を提供します (同時使用可能なユーザ数を最大にします)。 読み取り専用の並行処理が可能な ResultSet オブジェクトでロックを設定する場合には、読み取り専用ロックが使用されます。 これにより、ユーザはデータを読み取ることができますが、変更はできません。 データに対して同時に設定可能な読み取り専用ロックの数は無制限であるため、DBMS またはドライバが制限を課さない限り、同時使用するユーザ数には制限がありません。
+
+ CONCUR_UPDATABLE
+ プログラム的に更新可能な結果セットを示します。
+ JDBC 2.0 コア API を実装するドライバから利用可能
+ 並行処理のレベルを低下させます。 一度にデータ項目にアクセス可能なユーザを 1 人だけに限定する場合、更新可能な結果セットは書き込み専用ロックを使用します。 これにより、2 人以上のユーザが同じデータを変更する可能性が排除されるため、データベースの一貫性が保証されます。 ただし、この一貫性の代償として、並行処理のレベルが低下します。
+</code></pre>
+
+<p>これもサポート状況を調べてみました。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[CONCUR_READ_ONLY]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetConcurrency</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">,</span> <span class="n">ResultSet</span><span class="o">.</span><span class="na">CONCUR_READ_ONLY</span><span class="o">));</span>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[CONCUR_UPDATABLE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetConcurrency</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">,</span> <span class="n">ResultSet</span><span class="o">.</span><span class="na">CONCUR_UPDATABLE</span><span class="o">));</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>結果</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">[</span><span class="n">CONCUR_READ_ONLY</span><span class="o">]</span><span class="kc">true</span>
+</span><span class='line'><span class="o">[</span><span class="n">CONCUR_UPDATABLE</span><span class="o">]</span><span class="kc">true</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>両方サポートしているようです。デフォルトはCONCUR_READ_ONLYです。</p>
+
+<h2>ResultSet Cursor Holdability</h2>
+
+<p>Cursor Holdabilityというのは、トランザクションをコミットしたときに通常はカーソルがクローズされるものを、保持しておくことを可能にするか否かのオプションのようです。</p>
+
+<pre><code> HOLD_CURSORS_OVER_COMMIT
+ 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがクローズする。
+
+ CLOSE_CURSORS_AT_COMMIT
+ 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがオープンしたままになる。
+</code></pre>
+
+<p>これも同様にサポート状況を調べてみました。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DatabaseMetaData</span> <span class="n">dbMetaData</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">getMetaData</span><span class="o">();</span>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;ResultSet.HOLD_CURSORS_OVER_COMMIT = &quot;</span> <span class="o">+</span>
+</span><span class='line'>          <span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;ResultSet.CLOSE_CURSORS_AT_COMMIT = &quot;</span> <span class="o">+</span>
+</span><span class='line'>          <span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Default cursor holdability: &quot;</span> <span class="o">+</span>
+</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">getResultSetHoldability</span><span class="o">());</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Supports HOLD_CURSORS_OVER_COMMIT? &quot;</span> <span class="o">+</span>
+</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">supportsResultSetHoldability</span><span class="o">(</span>
+</span><span class='line'>                    <span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span><span class="o">));</span>
+</span><span class='line'>
+</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Supports CLOSE_CURSORS_AT_COMMIT? &quot;</span> <span class="o">+</span>
+</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">supportsResultSetHoldability</span><span class="o">(</span>
+</span><span class='line'>                    <span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span><span class="o">));</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>結果</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span class='line'><span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span> <span class="o">=</span> <span class="mi">2</span>
+</span><span class='line'><span class="n">Default</span> <span class="n">cursor</span> <span class="nl">holdability:</span> <span class="mi">1</span>
+</span><span class='line'><span class="n">Supports</span> <span class="n">HOLD_CURSORS_OVER_COMMIT</span><span class="o">?</span> <span class="kc">true</span>
+</span><span class='line'><span class="n">Supports</span> <span class="n">CLOSE_CURSORS_AT_COMMIT</span><span class="o">?</span> <span class="kc">false</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>通常、コミットされたらカーソルをクローズしてくれたほうがいいように直感的には思いますが、</p>
+
+<pre><code> Holdable cursors might be ideal if your application uses mostly read-only ResultSet objects.
+</code></pre>
+
+<p>とのことなので、トランザクションの実行に関わらず読み取りを高速に行いたい場合が考慮されているのかもしれません。そもそもカーソルのクローズは自動的にされるか、明示的に呼ぶと思いますので、よほど長い処理でない限りはどちらでも大差ない気はします。</p>
+
+<p>基本的にはデフォルトのまま使うので問題ないように思いますが、このへんはMySQLの設定のほうにあるトランザクションの分離レベルとも関わってくると思うのですが、今回調べただけだとどう影響しあうかがよく分かりませんでした。</p>
+
+<p>次回ももう少しこのへんを深掘りしてみます。</p>
+
+<p>今回のソースはこちら。
+<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Naoyuki Yamada</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-27T23:23:00+09:00" pubdate data-updated="true">May 27<span>th</span>, 2013</time>
+      
+
+<span class="categories">
+  
+    <a class='category' href='/blog/categories/java/'>java</a>, <a class='category' href='/blog/categories/jdbc/'>jdbc</a>, <a class='category' href='/blog/categories/mysql/'>mysql</a>
+  
+</span>
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/05/27/dig-into-jdbc-4/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/05/27/dig-into-jdbc-4/" >Tweet</a>
+  
+  
+  
+    <div class="fb-like" data-send="true" data-width="450" data-show-faces="false"></div>
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2013/05/24/dig-into-jdbc-3/" title="Previous Post: 最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文">&laquo; 最速ウェブアプリのためのJDBC再入門(3) INSERT文とSELECT文</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2013/05/28/dig-into-jdbc-5/" title="Next Post: 最速ウェブアプリのためのJDBC再入門(5) カーソルと更新">最速ウェブアプリのためのJDBC再入門(5) カーソルと更新 &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/chokkoyamada">@chokkoyamada</a> on GitHub
+  
+  <script type="text/javascript">
+    $(document).ready(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'chokkoyamada',
+            count: 3,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2013 - Naoyuki Yamada -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) {return;}
+  js = d.createElement(s); js.id = id; js.async = true;
+  js.src = "//connect.facebook.net/en_US/all.js#appId=212934732101925&xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
