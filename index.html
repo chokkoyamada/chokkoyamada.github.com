@@ -9,8 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="Ubuntuを使うシチュエーション Ubuntuに入門したいCentOSユーザーというのは私自身のことです。 最近、Ubuntu Linuxを使いこなせるようになりたいと思う場面が多いです。
-普段はCentOSまたはAmazon Linuxを使っていて、 &hellip;">
+  <meta name="description" content="AWSソリューションアーキテクトのJiang yifengさんによるEMRを中心とした技術の詳説です。 私はまだEMRをヘビーに使ったことはなくて、AWSサービスの中でいうとRedshiftのほうをよく使っています。
+ただ、EMRのポテンシャルはとても高く、いま最も使っていきたいサービスの一つです &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +78,177 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-17T12:20:00+09:00" pubdate data-updated="true">Jul 17<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>AWSソリューションアーキテクトのJiang yifengさんによるEMRを中心とした技術の詳説です。</p>
+
+<p>私はまだEMRをヘビーに使ったことはなくて、AWSサービスの中でいうとRedshiftのほうをよく使っています。
+ただ、EMRのポテンシャルはとても高く、いま最も使っていきたいサービスの一つです。
+他のクラウドサービスに似たサービスが無いことも特徴かと思います。</p>
+
+<p>私が最近EMRに注目しているのは、ずっと起動し続けるサービスではデータが収まりきらなくなってきた、という課題があります。
+私が取り組んでいるプロダクトでは、一日に約2TBのログが生まれています。圧縮しても数百GB。そうすると、RDSやRedshift, ElasticSearchなどの起動しっぱなしのクラスタにデータを格納し続けるのが困難になってきました。運用もきついですし、コスト的にもきついです。</p>
+
+<p>そこで、古いデータを消していくという運用になるのですが、後から古いデータにアクセスしたいケースはやはりあります。
+また、RedshiftでSQL、というだけではこなせないタスクも想定する必要が出てきたため、EMRを検討しています。</p>
+
+<h3>デザインパターン</h3>
+
+<ul>
+<li>一時的なクラスタの活用</li>
+<li>ジョブ実行中のみクラスタが存在</li>
+<li><p>データはS3に永続化される</p></li>
+<li><p>タスクノードの活用</p>
+
+<ul>
+<li>Spotインスタンスを使ってコスト削減</li>
+<li>短時間で大量のリソースを必要とする場合、S3から大量のデータをHDFSのコピーする際に一時的にタスクノードを追加して、HS1インスタンスなどにデータをロードする手法</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>ベストプラクティス</h2>
+
+<ul>
+<li><p>常に現世代のインスタンスタイプを使用</p></li>
+<li><p>ワークロードに最適なノードタイプを選ぶ</p>
+
+<ul>
+<li>HS1 HDFS用途</li>
+<li>I2 and HS1 ディスクIOが多いジョブ</li>
+<li>大きめのノードで構成する小さなクラスタが効率的</li>
+</ul>
+</li>
+<li><p>最適なファイルサイズ</p>
+
+<ul>
+<li>小さいファイル(100MB以下)を下げる</li>
+<li>S3でHadoop利用の場合は1~2GBが最適なファイルサイズ
+
+<ul>
+<li>1mapperからS3のデータ取得速度 10~15mb/s</li>
+<li>Mapper処理は60秒以上であるべき 60sec * 15mb = 1GB</li>
+</ul>
+</li>
+<li>S3DistCpを使ってファイルを結合して最適なサイズに。</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>チューニング</h2>
+
+<ul>
+<li><p>最強のチューニングはデータを効率よく保持すること</p></li>
+<li><p>Hadoopはバッチ向け</p></li>
+<li><p>Hadoop処理時間の目安は1時間〜数日</p></li>
+<li><p>短いジョブは他の技術がフィットするかも</p>
+
+<ul>
+<li>Apache Storm</li>
+<li>Apache Spark</li>
+<li>Redshift</li>
+</ul>
+</li>
+<li><p>裁許のチューニングについて</p>
+
+<ul>
+<li>ノード追加！！</li>
+<li><p>ビジネスの価値を最大化する目的からすると一番早い</p></li>
+<li><p>Gangliaでクラスタをモニタリング</p></li>
+<li>EMRなら1クリックインストール</li>
+</ul>
+</li>
+<li><p>例：ネットワークI/O</p></li>
+</ul>
+
+
+<p>もっとも重要なメトリック。特にS3を使う場合
+1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加
+Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</p>
+
+<h2>プラットフォームとしてのEMR</h2>
+
+<h3>HBase</h3>
+
+<ul>
+<li><p> 書き込みが激しいものに有効</p></li>
+<li><p>OpenTSDB</p>
+
+<ul>
+<li>HBase上のtime series database</li>
+<li>大規模なモニタリング用</li>
+<li>秒間数百万のデータ書き込み</li>
+</ul>
+</li>
+<li><p>自動／手動でAmazon S3にHBaseをバックアップ</p>
+
+<ul>
+<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア
+
+<h3>Impala</h3></li>
+</ul>
+</li>
+<li><p>SQL on Hadoop</p></li>
+<li><p>Hiveと互換性が高い: 一部のユースケースにおいてはHiveを置き換えられる</p></li>
+<li><p>ストレージレイヤー　永続クラスタのHDFSまたはHbaseを使う必要がある。現時点ではS3に未対応</p></li>
+</ul>
+
+
+<h3>Presto</h3>
+
+<ul>
+<li>ブートストラップでインストール</li>
+<li>Impalaと違い、S3のデータにダイレクトにアクセス可能なところ</li>
+</ul>
+
+
+<h3>Spark</h3>
+
+<ul>
+<li>非常に光速</li>
+<li>インメモリで処理しきれるならMapReduceより早いケースが多い</li>
+<li>ブートストラップでインストール</li>
+<li>ver0.8をサポート。1.0はcoming soon</li>
+<li>Sparkはメモリを大量に使う。R3系やSpotインスタンスを利用</li>
+<li>CloudWatchでSparkのメトリックスをサポートする JVMの監視が可能</li>
+<li>Spark Streaming + Amazon Kinesisの構成でリアルタイムで分散処理</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -2244,210 +2415,6 @@ JDBCのトランザクション分離レベルは使用しているデータベ�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/27/dig-into-jdbc-4/">最速ウェブアプリのためのJDBC再入門(4) ResultSetの特性</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-27T23:23:00+09:00" pubdate data-updated="true">May 27<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>MySQL-Connector-J 5.1のResultSetの実装</h2>
-
-<p>前回SELECTクエリを発行したときに、ResultSetというオブジェクトが返ってくるのでクエリ結果はそこから取り出すということをやりました。</p>
-
-<p>Oracle公式のドキュメントを読んでみるとResultSetは多くの機能をサポートしていますが、MySQLのconnector-Jで全てサポートしているかどうかがよく分からなかったので調べてみました。複数の機能の切り替えをサポートしている場合、切り替えることでパフォーマンスが改善する可能性が考えられるからです。</p>
-
-<p>Retrieving and Modifying Values from Result Sets (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
-<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/retrieving.html</a></p>
-
-<p>このドキュメントページによると、ResultSetが提供する特性(characteristics)には、Types, Concurrency, Holdabilityの3種類があります。</p>
-
-<h2>ResultSet Types</h2>
-
-<p>カーソルがどのように操作されるかと、並行実行された変更が反映されるかどうかの違いによって3種類あるようです。<a href="http://docs.oracle.com/javase/jp/1.4/guide/jdbc/getstart/resultset.html">日本語訳を引用</a>します。</p>
-
-<pre><code> TYPE_FORWARD_ONLY
- 結果セットは、スクロール不可能です。カーソルは上から下へ、順方向にのみ移動します。
- 結果セット内のデータの見え方は、DBMS が結果をインクリメンタルに生成するかどうかに依存します。
-
- TYPE_SCROLL_INSENSITIVE
- 結果セットはスクロール可能です。 カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
- 一般に、結果セットは、基となるデータベースが開いている間に行われた変更を表しません。 一般に、行のメンバシップ、順序、および列値は、結果セットの作成時に固定されます。
-
- TYPE_SCROLL_SENSITIVE
- 結果セットはスクロール可能です。カーソルは順方向および逆方向に移動可能で、移動先の行を直接指定することも、現在位置からの相対位置で指定することもできます。
- 結果セットは、開いている間に行われた変更を反映します。 基となる列値が変更されると、新たな値が反映されます。つまり、基となるデータの動的なビューを提供します。 結果セットに含まれる行とその順序は、実装によって固定されることも、されないこともあります。
-</code></pre>
-
-<p>Connector-Jの現行バージョンではどれなのか調べてみました。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DatabaseMetaData</span> <span class="n">databaseMetaData</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">getMetaData</span><span class="o">();</span>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_FORWARD_ONLY]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_FORWARD_ONLY</span><span class="o">));</span>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_SCROLL_INSENSITIVE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">));</span>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[TYPE_SCROLL_SENSITIVE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetType</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_SENSITIVE</span><span class="o">));</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>結果</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">[</span><span class="n">TYPE_FORWARD_ONLY</span><span class="o">]</span><span class="kc">false</span>
-</span><span class='line'><span class="o">[</span><span class="n">TYPE_SCROLL_INSENSITIVE</span><span class="o">]</span><span class="kc">true</span>
-</span><span class='line'><span class="o">[</span><span class="n">TYPE_SCROLL_SENSITIVE</span><span class="o">]</span><span class="kc">false</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>TYPE_SCROLL_INSENSITIVEのみがサポートされています。</p>
-
-<h2>ResultSet Concurrency 並行処理のタイプ</h2>
-
-<p>次は結果セットを更新可能かどうかです。</p>
-
-<pre><code> CONCUR_READ_ONLY
- プログラム的に更新不可能な結果セットを示します。
- JDBC 1.0 API だけを実装するドライバから利用可能な並行処理のタイプ
- 最高レベルの並行処理を提供します (同時使用可能なユーザ数を最大にします)。 読み取り専用の並行処理が可能な ResultSet オブジェクトでロックを設定する場合には、読み取り専用ロックが使用されます。 これにより、ユーザはデータを読み取ることができますが、変更はできません。 データに対して同時に設定可能な読み取り専用ロックの数は無制限であるため、DBMS またはドライバが制限を課さない限り、同時使用するユーザ数には制限がありません。
-
- CONCUR_UPDATABLE
- プログラム的に更新可能な結果セットを示します。
- JDBC 2.0 コア API を実装するドライバから利用可能
- 並行処理のレベルを低下させます。 一度にデータ項目にアクセス可能なユーザを 1 人だけに限定する場合、更新可能な結果セットは書き込み専用ロックを使用します。 これにより、2 人以上のユーザが同じデータを変更する可能性が排除されるため、データベースの一貫性が保証されます。 ただし、この一貫性の代償として、並行処理のレベルが低下します。
-</code></pre>
-
-<p>これもサポート状況を調べてみました。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[CONCUR_READ_ONLY]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetConcurrency</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">,</span> <span class="n">ResultSet</span><span class="o">.</span><span class="na">CONCUR_READ_ONLY</span><span class="o">));</span>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;[CONCUR_UPDATABLE]%s%n&quot;</span><span class="o">,</span> <span class="n">databaseMetaData</span><span class="o">.</span><span class="na">supportsResultSetConcurrency</span><span class="o">(</span><span class="n">ResultSet</span><span class="o">.</span><span class="na">TYPE_SCROLL_INSENSITIVE</span><span class="o">,</span> <span class="n">ResultSet</span><span class="o">.</span><span class="na">CONCUR_UPDATABLE</span><span class="o">));</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>結果</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">[</span><span class="n">CONCUR_READ_ONLY</span><span class="o">]</span><span class="kc">true</span>
-</span><span class='line'><span class="o">[</span><span class="n">CONCUR_UPDATABLE</span><span class="o">]</span><span class="kc">true</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>両方サポートしているようです。デフォルトはCONCUR_READ_ONLYです。</p>
-
-<h2>ResultSet Cursor Holdability</h2>
-
-<p>Cursor Holdabilityというのは、トランザクションをコミットしたときに通常はカーソルがクローズされるものを、保持しておくことを可能にするか否かのオプションのようです。</p>
-
-<pre><code> HOLD_CURSORS_OVER_COMMIT
- 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがクローズする。
-
- CLOSE_CURSORS_AT_COMMIT
- 現在のトランザクションがコミットされたときに、この保持機能を持つオープンしている ResultSet オブジェクトがオープンしたままになる。
-</code></pre>
-
-<p>これも同様にサポート状況を調べてみました。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">DatabaseMetaData</span> <span class="n">dbMetaData</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">getMetaData</span><span class="o">();</span>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;ResultSet.HOLD_CURSORS_OVER_COMMIT = &quot;</span> <span class="o">+</span>
-</span><span class='line'>          <span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;ResultSet.CLOSE_CURSORS_AT_COMMIT = &quot;</span> <span class="o">+</span>
-</span><span class='line'>          <span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Default cursor holdability: &quot;</span> <span class="o">+</span>
-</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">getResultSetHoldability</span><span class="o">());</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Supports HOLD_CURSORS_OVER_COMMIT? &quot;</span> <span class="o">+</span>
-</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">supportsResultSetHoldability</span><span class="o">(</span>
-</span><span class='line'>                    <span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span><span class="o">));</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Supports CLOSE_CURSORS_AT_COMMIT? &quot;</span> <span class="o">+</span>
-</span><span class='line'>          <span class="n">dbMetaData</span><span class="o">.</span><span class="na">supportsResultSetHoldability</span><span class="o">(</span>
-</span><span class='line'>                    <span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span><span class="o">));</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>結果</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">ResultSet</span><span class="o">.</span><span class="na">HOLD_CURSORS_OVER_COMMIT</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span class='line'><span class="n">ResultSet</span><span class="o">.</span><span class="na">CLOSE_CURSORS_AT_COMMIT</span> <span class="o">=</span> <span class="mi">2</span>
-</span><span class='line'><span class="n">Default</span> <span class="n">cursor</span> <span class="nl">holdability:</span> <span class="mi">1</span>
-</span><span class='line'><span class="n">Supports</span> <span class="n">HOLD_CURSORS_OVER_COMMIT</span><span class="o">?</span> <span class="kc">true</span>
-</span><span class='line'><span class="n">Supports</span> <span class="n">CLOSE_CURSORS_AT_COMMIT</span><span class="o">?</span> <span class="kc">false</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>通常、コミットされたらカーソルをクローズしてくれたほうがいいように直感的には思いますが、</p>
-
-<pre><code> Holdable cursors might be ideal if your application uses mostly read-only ResultSet objects.
-</code></pre>
-
-<p>とのことなので、トランザクションの実行に関わらず読み取りを高速に行いたい場合が考慮されているのかもしれません。そもそもカーソルのクローズは自動的にされるか、明示的に呼ぶと思いますので、よほど長い処理でない限りはどちらでも大差ない気はします。</p>
-
-<p>基本的にはデフォルトのまま使うので問題ないように思いますが、このへんはMySQLの設定のほうにあるトランザクションの分離レベルとも関わってくると思うのですが、今回調べただけだとどう影響しあうかがよく分かりませんでした。</p>
-
-<p>次回ももう少しこのへんを深掘りしてみます。</p>
-
-<p>今回のソースはこちら。
-<a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter4</a></p>
-
-<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -2463,6 +2430,10 @@ JDBCのトランザクション分離レベルは使用しているデータベ�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
       </li>
     
@@ -2476,10 +2447,6 @@ JDBCのトランザクション分離レベルは使用しているデータベ�
     
       <li class="post">
         <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let&#8217;s Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a>
       </li>
     
   </ul>
@@ -2524,7 +2491,7 @@ JDBCのトランザクション分離レベルは使用しているデータベ�
     </div>
   </div>
   <footer role="contentinfo"><p>
-  Copyright &copy; 2013 - Naoyuki Yamada -
+  Copyright &copy; 2014 - Naoyuki Yamada -
   <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
 </p>
 

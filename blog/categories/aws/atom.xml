@@ -4,7 +4,7 @@
   <title><![CDATA[Category: aws | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2013-11-18T21:00:51+09:00</updated>
+  <updated>2014-07-17T13:03:08+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,150 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014/"/>
+    <updated>2014-07-17T12:20:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014</id>
+    <content type="html"><![CDATA[<p>AWSソリューションアーキテクトのJiang yifengさんによるEMRを中心とした技術の詳説です。</p>
+
+<p>私はまだEMRをヘビーに使ったことはなくて、AWSサービスの中でいうとRedshiftのほうをよく使っています。
+ただ、EMRのポテンシャルはとても高く、いま最も使っていきたいサービスの一つです。
+他のクラウドサービスに似たサービスが無いことも特徴かと思います。</p>
+
+<p>私が最近EMRに注目しているのは、ずっと起動し続けるサービスではデータが収まりきらなくなってきた、という課題があります。
+私が取り組んでいるプロダクトでは、一日に約2TBのログが生まれています。圧縮しても数百GB。そうすると、RDSやRedshift, ElasticSearchなどの起動しっぱなしのクラスタにデータを格納し続けるのが困難になってきました。運用もきついですし、コスト的にもきついです。</p>
+
+<p>そこで、古いデータを消していくという運用になるのですが、後から古いデータにアクセスしたいケースはやはりあります。
+また、RedshiftでSQL、というだけではこなせないタスクも想定する必要が出てきたため、EMRを検討しています。</p>
+
+<h3>デザインパターン</h3>
+
+<ul>
+<li>一時的なクラスタの活用</li>
+<li>ジョブ実行中のみクラスタが存在</li>
+<li><p>データはS3に永続化される</p></li>
+<li><p>タスクノードの活用</p>
+
+<ul>
+<li>Spotインスタンスを使ってコスト削減</li>
+<li>短時間で大量のリソースを必要とする場合、S3から大量のデータをHDFSのコピーする際に一時的にタスクノードを追加して、HS1インスタンスなどにデータをロードする手法</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>ベストプラクティス</h2>
+
+<ul>
+<li><p>常に現世代のインスタンスタイプを使用</p></li>
+<li><p>ワークロードに最適なノードタイプを選ぶ</p>
+
+<ul>
+<li>HS1 HDFS用途</li>
+<li>I2 and HS1 ディスクIOが多いジョブ</li>
+<li>大きめのノードで構成する小さなクラスタが効率的</li>
+</ul>
+</li>
+<li><p>最適なファイルサイズ</p>
+
+<ul>
+<li>小さいファイル(100MB以下)を下げる</li>
+<li>S3でHadoop利用の場合は1~2GBが最適なファイルサイズ
+
+<ul>
+<li>1mapperからS3のデータ取得速度 10~15mb/s</li>
+<li>Mapper処理は60秒以上であるべき 60sec * 15mb = 1GB</li>
+</ul>
+</li>
+<li>S3DistCpを使ってファイルを結合して最適なサイズに。</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>チューニング</h2>
+
+<ul>
+<li><p>最強のチューニングはデータを効率よく保持すること</p></li>
+<li><p>Hadoopはバッチ向け</p></li>
+<li><p>Hadoop処理時間の目安は1時間〜数日</p></li>
+<li><p>短いジョブは他の技術がフィットするかも</p>
+
+<ul>
+<li>Apache Storm</li>
+<li>Apache Spark</li>
+<li>Redshift</li>
+</ul>
+</li>
+<li><p>裁許のチューニングについて</p>
+
+<ul>
+<li>ノード追加！！</li>
+<li><p>ビジネスの価値を最大化する目的からすると一番早い</p></li>
+<li><p>Gangliaでクラスタをモニタリング</p></li>
+<li>EMRなら1クリックインストール</li>
+</ul>
+</li>
+<li><p>例：ネットワークI/O</p></li>
+</ul>
+
+
+<p>もっとも重要なメトリック。特にS3を使う場合
+1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加
+Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</p>
+
+<h2>プラットフォームとしてのEMR</h2>
+
+<h3>HBase</h3>
+
+<ul>
+<li><p> 書き込みが激しいものに有効</p></li>
+<li><p>OpenTSDB</p>
+
+<ul>
+<li>HBase上のtime series database</li>
+<li>大規模なモニタリング用</li>
+<li>秒間数百万のデータ書き込み</li>
+</ul>
+</li>
+<li><p>自動／手動でAmazon S3にHBaseをバックアップ</p>
+
+<ul>
+<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア
+
+<h3>Impala</h3></li>
+</ul>
+</li>
+<li><p>SQL on Hadoop</p></li>
+<li><p>Hiveと互換性が高い: 一部のユースケースにおいてはHiveを置き換えられる</p></li>
+<li><p>ストレージレイヤー　永続クラスタのHDFSまたはHbaseを使う必要がある。現時点ではS3に未対応</p></li>
+</ul>
+
+
+<h3>Presto</h3>
+
+<ul>
+<li>ブートストラップでインストール</li>
+<li>Impalaと違い、S3のデータにダイレクトにアクセス可能なところ</li>
+</ul>
+
+
+<h3>Spark</h3>
+
+<ul>
+<li>非常に光速</li>
+<li>インメモリで処理しきれるならMapReduceより早いケースが多い</li>
+<li>ブートストラップでインストール</li>
+<li>ver0.8をサポート。1.0はcoming soon</li>
+<li>Sparkはメモリを大量に使う。R3系やSpotインスタンスを利用</li>
+<li>CloudWatchでSparkのメトリックスをサポートする JVMの監視が可能</li>
+<li>Spark Streaming + Amazon Kinesisの構成でリアルタイムで分散処理</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ]]></title>
