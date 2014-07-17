@@ -175,22 +175,21 @@
 <li>Redshift</li>
 </ul>
 </li>
-<li><p>裁許のチューニングについて</p>
-
-<ul>
-<li>ノード追加！！</li>
+<li><p>チューニングについて</p></li>
+<li><p>ノード追加！！</p></li>
 <li><p>ビジネスの価値を最大化する目的からすると一番早い</p></li>
 <li><p>Gangliaでクラスタをモニタリング</p></li>
-<li>EMRなら1クリックインストール</li>
+<li><p>EMRなら1クリックインストール</p></li>
+<li><p>例：ネットワークI/O</p>
+
+<ul>
+<li>もっとも重要なメトリック。特にS3を使う場合</li>
+<li>1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加</li>
+<li>Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</li>
 </ul>
 </li>
-<li><p>例：ネットワークI/O</p></li>
 </ul>
 
-
-<p>もっとも重要なメトリック。特にS3を使う場合
-1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加
-Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</p>
 
 <h2>プラットフォームとしてのEMR</h2>
 
@@ -209,12 +208,16 @@ Gangliaでネットワークスループットをチェック例えば200mbpsし
 <li><p>自動／手動でAmazon S3にHBaseをバックアップ</p>
 
 <ul>
-<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア
-
-<h3>Impala</h3></li>
+<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア</li>
 </ul>
 </li>
-<li><p>SQL on Hadoop</p></li>
+</ul>
+
+
+<h3>Impala</h3>
+
+<ul>
+<li>SQL on Hadoop</li>
 <li><p>Hiveと互換性が高い: 一部のユースケースにおいてはHiveを置き換えられる</p></li>
 <li><p>ストレージレイヤー　永続クラスタのHDFSまたはHbaseを使う必要がある。現時点ではS3に未対応</p></li>
 </ul>
@@ -290,6 +293,8 @@ Gangliaでネットワークスループットをチェック例えば200mbpsし
         <a class="basic-alignment left" href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/" title="Previous Post: CentOSユーザーのためのUbuntu Linux入門(1)">&laquo; CentOSユーザーのためのUbuntu Linux入門(1)</a>
       
       
+        <a class="basic-alignment right" href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/" title="Next Post: AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築 &raquo;</a>
+      
     </p>
   </footer>
 </article>
@@ -301,6 +306,10 @@ Gangliaでネットワークスループットをチェック例えば200mbpsし
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
@@ -316,10 +325,6 @@ Gangliaでネットワークスループットをチェック例えば200mbpsし
     
       <li class="post">
         <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</a>
       </li>
     
   </ul>

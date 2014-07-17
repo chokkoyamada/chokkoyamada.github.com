@@ -4,7 +4,7 @@
   <title><![CDATA[Category: redshift | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/redshift/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-17T13:03:08+09:00</updated>
+  <updated>2014-07-17T13:20:31+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,15 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/"/>
+    <updated>2014-07-17T13:08:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad</id>
+    <content type="html"><![CDATA[<p>Cookpadの青木さんによる、Redshiftの活用方法です。　</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ]]></title>

@@ -4,7 +4,7 @@
   <title><![CDATA[Category: aws | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-17T13:03:08+09:00</updated>
+  <updated>2014-07-17T13:20:31+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,15 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/"/>
+    <updated>2014-07-17T13:08:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad</id>
+    <content type="html"><![CDATA[<p>Cookpadの青木さんによる、Redshiftの活用方法です。　</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive]]></title>
@@ -89,22 +98,21 @@
 <li>Redshift</li>
 </ul>
 </li>
-<li><p>裁許のチューニングについて</p>
-
-<ul>
-<li>ノード追加！！</li>
+<li><p>チューニングについて</p></li>
+<li><p>ノード追加！！</p></li>
 <li><p>ビジネスの価値を最大化する目的からすると一番早い</p></li>
 <li><p>Gangliaでクラスタをモニタリング</p></li>
-<li>EMRなら1クリックインストール</li>
+<li><p>EMRなら1クリックインストール</p></li>
+<li><p>例：ネットワークI/O</p>
+
+<ul>
+<li>もっとも重要なメトリック。特にS3を使う場合</li>
+<li>1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加</li>
+<li>Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</li>
 </ul>
 </li>
-<li><p>例：ネットワークI/O</p></li>
 </ul>
 
-
-<p>もっとも重要なメトリック。特にS3を使う場合
-1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加
-Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</p>
 
 <h2>プラットフォームとしてのEMR</h2>
 
@@ -123,12 +131,16 @@ Gangliaでネットワークスループットをチェック例えば200mbpsし
 <li><p>自動／手動でAmazon S3にHBaseをバックアップ</p>
 
 <ul>
-<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア
-
-<h3>Impala</h3></li>
+<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア</li>
 </ul>
 </li>
-<li><p>SQL on Hadoop</p></li>
+</ul>
+
+
+<h3>Impala</h3>
+
+<ul>
+<li>SQL on Hadoop</li>
 <li><p>Hiveと互換性が高い: 一部のユースケースにおいてはHiveを置き換えられる</p></li>
 <li><p>ストレージレイヤー　永続クラスタのHDFSまたはHbaseを使う必要がある。現時点ではS3に未対応</p></li>
 </ul>
