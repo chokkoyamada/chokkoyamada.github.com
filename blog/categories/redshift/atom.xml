@@ -4,7 +4,7 @@
   <title><![CDATA[Category: redshift | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/redshift/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-17T13:20:31+09:00</updated>
+  <updated>2014-07-17T14:02:53+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -18,7 +18,150 @@
     <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/"/>
     <updated>2014-07-17T13:08:00+09:00</updated>
     <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad</id>
-    <content type="html"><![CDATA[<p>Cookpadの青木さんによる、Redshiftの活用方法です。　</p>
+    <content type="html"><![CDATA[<p>Cookpadのエンジニアの青木さんによる、Redshiftの活用方法です。　</p>
+
+<p>さきほどのEMRのセッションも聞きつつも、SQLの世界は深いので、まだまだSQLで頑張れる部分はたくさんあるのではないかと思っています。
+Redshiftで可能なことのごく一部しか使っておらず、「Redshiftじゃきつい」というレベルにもまだないです。</p>
+
+<p>ただ、いうほど”リアルタイム”ではなかったです。ユーザーからの検索はリアルタイムで直接SELECTしているみたいですが、データ更新はバッチ処理でした。</p>
+
+<p>User &ndash; EC2 &ndash; Redshiftという構成になっているのが一番驚きました。「たべみる」がB2Bサービスなのでそれほど同時に使う人数が多くないのでしょうが、こういう構成は無理かなと思い込んでいたのでとても参考になりました。</p>
+
+<h2>たべみる: 検索システム</h2>
+
+<ul>
+<li>単語の検索頻度</li>
+<li>単語の組み合わせ頻度</li>
+<li>現在盛り上がっている単語</li>
+<li>ユーザーの年代や居住地域を軸とした分析</li>
+</ul>
+
+
+<p>「バレンタイン」のキーワード分析　単語の組み合わせ　マッチ度　バレンタイン + 本命, 簡単, 大量</p>
+
+<h2>たべみるのシステム構成</h2>
+
+<p>User &ndash; ELB &ndash; EC2 &ndash; Redshift</p>
+
+<p>Rails4 / Ruby2.1
+dw2.large x 12</p>
+
+<p>目標応答時間 500msec</p>
+
+<p>応答速度向上の施策
+圧縮タイプの選択
+sort key: where句で入れているものは全てSort Keyに入れる 大きく削るならDist Key, 細かいチューニングはSort key
+サマリーテーブル: 大きいデータをクエリすると絶対に時間かかるので、サマっておく</p>
+
+<p>サマリーテーブルいつ作る？
+安心と伝統の夜間バッチ 37minで実行できているのでHourlyの更新も可能だが、あえてやっていない。不要なので。
+B2Bサービスなので、1日に少しずつ追加されてもあまり意味が無いため。</p>
+
+<p>ログまたはMySQL &ndash;> file &ndash;> Redhisft(raw &ndash;> 中間データ &ndash;> summaryの三段階)</p>
+
+<h2>データ連携の詳細</h2>
+
+<p>信頼と実績のTSV渡し</p>
+
+<p>他の用途ではfluentdによる継続ロードも</p>
+
+<h2>SQLによるデータ処理</h2>
+
+<ul>
+<li><p>ELTのお約束</p>
+
+<ul>
+<li>エクスポート禁止:　データ移動は遅い　 DB外処理は非並列</li>
+<li>UPDATE禁止:  複数回実行しにくい(冪等にしておきたい) VACUUMが厄介</li>
+<li>1行INSERT禁止:  COPYかINSERT SELECT</li>
+</ul>
+</li>
+<li><p>INSERT SELECTだけ使え！！</p></li>
+<li><p>SQLでは書けなかった処理</p>
+
+<ul>
+<li>日本語処理　半角→全角変換</li>
+<li>可変数カラム　タブ区切り文字列の分割</li>
+<li>要するに文字列処理がきつい</li>
+</ul>
+</li>
+<li><p>SQLで書ける！ こんな処理</p>
+
+<ul>
+<li>単語の組み合わせ生成  ジョイン</li>
+<li>未来の月曜日N週ぶんの生成 ジョイン</li>
+<li>テーブルの縦横変換 ジョイン</li>
+<li>移動平均、移動累積和 ウィンドウ関数</li>
+<li>グループごとのランキングTOPN ウィンドウ関数</li>
+</ul>
+</li>
+<li><p>テーブルの縦横変換の例</p></li>
+<li>グループごとのランキングの例 ウィンドウ関数を使うと、分割するけど、これを集約せずに結果だけ取ることができる
+
+<ul>
+<li>rank() over ( partition by ~ order by ~)</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>データ更新のパターン</h2>
+
+<ul>
+<li><p>差分更新</p>
+
+<ul>
+<li>追加されたデータだけ更新する</li>
+<li>デメリットは、冪等にしくくいこと</li>
+<li>そのため、あらかじめ生成されるレンジのデータを消してからデータを挿入する処理にする</li>
+</ul>
+</li>
+<li><p>洗い替え</p>
+
+<ul>
+<li>dropまたはtruncateして作りなおす</li>
+<li>差分を考える必要がない</li>
+<li>遅い</li>
+<li>新しいテーブルを作ると権限(GRANT)を1個1個つけて回る必要があり、面倒</li>
+<li>VACUUM問題</li>
+</ul>
+</li>
+<li><p>アトミック洗い替え</p>
+
+<ul>
+<li>新しいテーブルを作ってる途中にテーブルが無くなってしまうので、テーブルが作り終わってからTRANSACTION内でALTER TABLE RENAMEする</li>
+<li>24時間参照するテーブルではこれを使う</li>
+<li>デメリットとしては、データが2倍になってしまう</li>
+</ul>
+</li>
+<li><p>応用：アトミックな本番切り替え</p>
+
+<ul>
+<li>複数のテーブルをいっぺんに切り替える</li>
+<li>複数のテーブルがお互いにデータが関連している場合</li>
+</ul>
+</li>
+<li><p>更新パターンの使い分け</p>
+
+<ul>
+<li>生データは差分更新</li>
+<li>中間データは洗い替え</li>
+<li>サマリーデータはアトミック洗い替え</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>なぜRedshiftにしたのか</h2>
+
+<ul>
+<li>COOKPADがAWSにあるから</li>
+<li>マネージドサービスだから</li>
+<li>並列処理能力が高いから</li>
+<li>ウィンドウ関数など高度な機能が実装されているから</li>
+<li>ある程度オンライン処理にも耐えられるから</li>
+</ul>
+
 ]]></content>
   </entry>
   
