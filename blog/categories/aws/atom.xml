@@ -4,7 +4,7 @@
   <title><![CDATA[Category: aws | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-18T16:03:09+09:00</updated>
+  <updated>2014-07-18T16:57:59+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,184 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Chatwork検索機能を支える技術]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-chatwork/"/>
+    <updated>2014-07-18T16:11:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-chatwork</id>
+    <content type="html"><![CDATA[<p>ChatworkがAWSで作られているのは周知の事実でしたが、これだけのものをどう構築しているのかはとても気になっていました。</p>
+
+<p>ガンホーのセッションとどちらにいくかを迷いましたが、日頃お世話になっているChatworkのほうを聞きにきました。</p>
+
+<p>オープンソースの検索ミドルウェアがいくつか選択肢があり、特別なノウハウが無くても検索システムを作ることは可能な時代になってきました。ただしその運用は簡単じゃなく、大量データの投入, 検索速度, バックアップなど課題が多いと思っています。</p>
+
+<p>私も大規模なElasticSearchクラスタを運用していますが、このセッションでもあった通り、心が折れそうになる気持ちは分かります。
+その道のスペシャリストになれればよいのですが、それだけの仕事をしているわけではないので・・・中途半端に手を出すとやけどしますね。</p>
+
+<p>そんななかでChatworkがあれだけの規模をなんとか動かし続けているのはCloudsearchのおかげな部分が大きいということです。
+やはり少人数で回すには、フルマネージドサービスさま様ですね。。。</p>
+
+<p>Chatowkの規模：4万6千社、41万ユーザー</p>
+
+<h2>Chatwork検索システムの変遷</h2>
+
+<ul>
+<li>Mroonga単体構成 2011/9~</li>
+<li>Mroonga分割構成 2013/5~</li>
+<li>Elasticsearch検討 2013/6~</li>
+<li>CloudSearch検討 2014/4~</li>
+</ul>
+
+
+<h2>CloudSearchを採用した理由</h2>
+
+<ul>
+<li><p>Mroonga 3.0の課題</p>
+
+<ul>
+<li>IOロックの発生</li>
+<li>一千万件程度では順調</li>
+<li>数千万件レベルになるとMySQLがダウンするように。。。</li>
+</ul>
+</li>
+<li><p>IOロックを回避するために
+Mroonga + Spiderストレージエンジンを検討
+数億のメッセージ規模で安定稼働させるには、最初から多数のMroongaノードを用意する必要あり</p></li>
+<li><p>Elasticsearch 0.9の検証
+構成する要素が複雑: クラスター、ノード、インデックス、シャード
+サイジングが必要
+インデックス作成時にシャード数を決める
+シャード数は後から変更できない</p></li>
+<li><p>ダミーメッセージ投入テストを行いながらTry and Error</p></li>
+<li><p>シャード分割数が少なすぎ、書き込み速度が徐々に低下、シャード分割数を増やしてデータ再投入</p></li>
+<li><p>サイジング対策
+インデックスを範囲で区切って細かく分割, シャードも細かく、クラスタ構成も大きなもので</p></li>
+<li><p>i2.xlarge x 6の構成を予定</p></li>
+<li><p>課題</p>
+
+<ul>
+<li>バックアップｘ</li>
+<li>Multi-az x</li>
+<li>アクセス制御 x</li>
+</ul>
+</li>
+</ul>
+
+
+<p>もっとカジュアルに検索システムを開発・運用したい。</p>
+
+<ul>
+<li>2014/3にCloudsearch大幅アップデートで検証開始
+
+<ul>
+<li>初期投入が十分早い</li>
+<li>検索速度も早い</li>
+<li>Multi-AZ運用が可能</li>
+<li>Index Fieldごとにアクセス制御可能</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>CloudSearchを利用した検索アーキテクチャ</h2>
+
+<p>キューを通してワーカーがDynamoDBに履歴を作って、それをまとめてCloudsearchに入れる構成</p>
+
+<h3>機能要件</h3>
+
+<ul>
+<li>複数言語対応</li>
+<li>閲覧権限を持つ全てのGroupChat</li>
+<li>初期投入対象は3.2億件</li>
+<li><p>差分投入で追加、編集、削除を順次行う</p></li>
+<li><p>Domain設計</p>
+
+<ul>
+<li>Scaling Options:
+
+<ul>
+<li>search.m2.2xlarge</li>
+<li>partition count: 4</li>
+</ul>
+</li>
+<li>Index Option
+
+<ul>
+<li>(Multiple Language: 特定の言語に依存しない index fieldを一つ用意)</li>
+<li>言語ごとにIndex fieldを作成、言語判定ライブラリを用意</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>3.2億件の初期データ投入結果</p>
+
+<ul>
+<li>SQSで分割 documents/batch requestを利用</li>
+<li>c3.8xlargeをworker</li>
+<li>30並列で実行</li>
+<li>12時間</li>
+<li>データ投入自体にかかったコストは450ドルくらい</li>
+</ul>
+</li>
+<li><p>差分投入</p>
+
+<ul>
+<li>チャットメッセージ編集・追加・削除ごとにSQS作成</li>
+<li>一定以上たまったらworkerがまとめて投入</li>
+<li>この構成で大きな遅延なくindexできている</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>CloudSearchの課題</h2>
+
+<ul>
+<li><p>検索</p>
+
+<ul>
+<li>記号の検索に対応していない</li>
+<li>アプリケーション側で工夫が必要</li>
+</ul>
+</li>
+<li><p>Cloudwatchのメトリクスがない</p>
+
+<ul>
+<li>代替手段として、describe</li>
+<li>SQSの残キュー数の取得</li>
+<li>muninを使用</li>
+</ul>
+</li>
+<li><p>認証</p>
+
+<ul>
+<li>Scaleoutするためには、現状Proxyが必要</li>
+<li>access policyはグローバルIPが指定可能だが、即時反映されない、実質４０分程度かかる</li>
+</ul>
+</li>
+<li><p>コスト</p>
+
+<ul>
+<li>実質的な運用コストはMroonga分割運用時と比較して約２倍になった</li>
+<li>リザーブドインスタンスがない</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>採用してよかったこと</h2>
+
+<ul>
+<li>保守運用が楽になった</li>
+<li>差分投入が安定</li>
+<li>検索速度の安定、高速</li>
+<li>アプリケーション構成がシンプル</li>
+<li>AWSサポートから日本語でサポートを受けられる</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive]]></title>
@@ -603,158 +781,6 @@ CloudfrontはAlternative Domain Name: レコードセットのTypeをCNAMEでは
 
 <p>2014/9/9 AWS Cloud Strage &amp; DB Day
 <a href="http://csd.awseventsjapan.com">http://csd.awseventsjapan.com</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/"/>
-    <updated>2014-07-17T13:08:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad</id>
-    <content type="html"><![CDATA[<p>Cookpadのエンジニアの青木さんによる、Redshiftの活用方法です。　</p>
-
-<p>さきほどのEMRのセッションも聞きつつも、SQLの世界は深いので、まだまだSQLで頑張れる部分はたくさんあるのではないかと思っています。
-Redshiftで可能なことのごく一部しか使っておらず、「Redshiftじゃきつい」というレベルにもまだないです。</p>
-
-<p>ただ、いうほど”リアルタイム”ではなかったです。ユーザーからの検索はリアルタイムで直接SELECTしているみたいですが、データ更新はバッチ処理でした。</p>
-
-<p>User &ndash; EC2 &ndash; Redshiftという構成になっているのが一番驚きました。「たべみる」がB2Bサービスなのでそれほど同時に使う人数が多くないのでしょうが、こういう構成は無理かなと思い込んでいたのでとても参考になりました。</p>
-
-<h2>たべみる: 検索システム</h2>
-
-<ul>
-<li>単語の検索頻度</li>
-<li>単語の組み合わせ頻度</li>
-<li>現在盛り上がっている単語</li>
-<li>ユーザーの年代や居住地域を軸とした分析</li>
-</ul>
-
-
-<p>「バレンタイン」のキーワード分析　単語の組み合わせ　マッチ度　バレンタイン + 本命, 簡単, 大量</p>
-
-<h2>たべみるのシステム構成</h2>
-
-<p>User &ndash; ELB &ndash; EC2 &ndash; Redshift</p>
-
-<p>Rails4 / Ruby2.1
-dw2.large x 12</p>
-
-<p>目標応答時間 500msec</p>
-
-<p>応答速度向上の施策
-圧縮タイプの選択
-sort key: where句で入れているものは全てSort Keyに入れる 大きく削るならDist Key, 細かいチューニングはSort key
-サマリーテーブル: 大きいデータをクエリすると絶対に時間かかるので、サマっておく</p>
-
-<p>サマリーテーブルいつ作る？
-安心と伝統の夜間バッチ 37minで実行できているのでHourlyの更新も可能だが、あえてやっていない。不要なので。
-B2Bサービスなので、1日に少しずつ追加されてもあまり意味が無いため。</p>
-
-<p>ログまたはMySQL &ndash;> file &ndash;> Redhisft(raw &ndash;> 中間データ &ndash;> summaryの三段階)</p>
-
-<h2>データ連携の詳細</h2>
-
-<p>信頼と実績のTSV渡し</p>
-
-<p>他の用途ではfluentdによる継続ロードも</p>
-
-<h2>SQLによるデータ処理</h2>
-
-<ul>
-<li><p>ELTのお約束</p>
-
-<ul>
-<li>エクスポート禁止:　データ移動は遅い　 DB外処理は非並列</li>
-<li>UPDATE禁止:  複数回実行しにくい(冪等にしておきたい) VACUUMが厄介</li>
-<li>1行INSERT禁止:  COPYかINSERT SELECT</li>
-</ul>
-</li>
-<li><p>INSERT SELECTだけ使え！！</p></li>
-<li><p>SQLでは書けなかった処理</p>
-
-<ul>
-<li>日本語処理　半角→全角変換</li>
-<li>可変数カラム　タブ区切り文字列の分割</li>
-<li>要するに文字列処理がきつい</li>
-</ul>
-</li>
-<li><p>SQLで書ける！ こんな処理</p>
-
-<ul>
-<li>単語の組み合わせ生成  ジョイン</li>
-<li>未来の月曜日N週ぶんの生成 ジョイン</li>
-<li>テーブルの縦横変換 ジョイン</li>
-<li>移動平均、移動累積和 ウィンドウ関数</li>
-<li>グループごとのランキングTOPN ウィンドウ関数</li>
-</ul>
-</li>
-<li><p>テーブルの縦横変換の例</p></li>
-<li>グループごとのランキングの例 ウィンドウ関数を使うと、分割するけど、これを集約せずに結果だけ取ることができる
-
-<ul>
-<li>rank() over ( partition by ~ order by ~)</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>データ更新のパターン</h2>
-
-<ul>
-<li><p>差分更新</p>
-
-<ul>
-<li>追加されたデータだけ更新する</li>
-<li>デメリットは、冪等にしくくいこと</li>
-<li>そのため、あらかじめ生成されるレンジのデータを消してからデータを挿入する処理にする</li>
-</ul>
-</li>
-<li><p>洗い替え</p>
-
-<ul>
-<li>dropまたはtruncateして作りなおす</li>
-<li>差分を考える必要がない</li>
-<li>遅い</li>
-<li>新しいテーブルを作ると権限(GRANT)を1個1個つけて回る必要があり、面倒</li>
-<li>VACUUM問題</li>
-</ul>
-</li>
-<li><p>アトミック洗い替え</p>
-
-<ul>
-<li>新しいテーブルを作ってる途中にテーブルが無くなってしまうので、テーブルが作り終わってからTRANSACTION内でALTER TABLE RENAMEする</li>
-<li>24時間参照するテーブルではこれを使う</li>
-<li>デメリットとしては、データが2倍になってしまう</li>
-</ul>
-</li>
-<li><p>応用：アトミックな本番切り替え</p>
-
-<ul>
-<li>複数のテーブルをいっぺんに切り替える</li>
-<li>複数のテーブルがお互いにデータが関連している場合</li>
-</ul>
-</li>
-<li><p>更新パターンの使い分け</p>
-
-<ul>
-<li>生データは差分更新</li>
-<li>中間データは洗い替え</li>
-<li>サマリーデータはアトミック洗い替え</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>なぜRedshiftにしたのか</h2>
-
-<ul>
-<li>COOKPADがAWSにあるから</li>
-<li>マネージドサービスだから</li>
-<li>並列処理能力が高いから</li>
-<li>ウィンドウ関数など高度な機能が実装されているから</li>
-<li>ある程度オンライン処理にも耐えられるから</li>
-</ul>
-
 ]]></content>
   </entry>
   

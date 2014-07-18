@@ -9,9 +9,7 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="ソリューションアーキテクトの大谷さんと開発マネージャの堀さんによる、Kinesisの詳説です。
-Kinesisの開発マネージャの方が解説してくれたこともあり、とても意義あるものでした。 Kinesisの新規ローンチ 東京リージョンローンチ
-Fluentdプラグイン https://github. &hellip;">
+  <meta name="description" content="ChatworkがAWSで作られているのは周知の事実でしたが、これだけのものをどう構築しているのかはとても気になっていました。 ガンホーのセッションとどちらにいくかを迷いましたが、日頃お世話になっているChatworkのほうを聞きにきました。 オープンソースの検索ミドルウェアがいくつか選択肢があり &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -79,6 +77,211 @@ Fluentdプラグイン https://github. &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-chatwork/">AWS Summit Tokyo 2014: Chatwork検索機能を支える技術</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-18T16:11:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ChatworkがAWSで作られているのは周知の事実でしたが、これだけのものをどう構築しているのかはとても気になっていました。</p>
+
+<p>ガンホーのセッションとどちらにいくかを迷いましたが、日頃お世話になっているChatworkのほうを聞きにきました。</p>
+
+<p>オープンソースの検索ミドルウェアがいくつか選択肢があり、特別なノウハウが無くても検索システムを作ることは可能な時代になってきました。ただしその運用は簡単じゃなく、大量データの投入, 検索速度, バックアップなど課題が多いと思っています。</p>
+
+<p>私も大規模なElasticSearchクラスタを運用していますが、このセッションでもあった通り、心が折れそうになる気持ちは分かります。
+その道のスペシャリストになれればよいのですが、それだけの仕事をしているわけではないので・・・中途半端に手を出すとやけどしますね。</p>
+
+<p>そんななかでChatworkがあれだけの規模をなんとか動かし続けているのはCloudsearchのおかげな部分が大きいということです。
+やはり少人数で回すには、フルマネージドサービスさま様ですね。。。</p>
+
+<p>Chatowkの規模：4万6千社、41万ユーザー</p>
+
+<h2>Chatwork検索システムの変遷</h2>
+
+<ul>
+<li>Mroonga単体構成 2011/9~</li>
+<li>Mroonga分割構成 2013/5~</li>
+<li>Elasticsearch検討 2013/6~</li>
+<li>CloudSearch検討 2014/4~</li>
+</ul>
+
+
+<h2>CloudSearchを採用した理由</h2>
+
+<ul>
+<li><p>Mroonga 3.0の課題</p>
+
+<ul>
+<li>IOロックの発生</li>
+<li>一千万件程度では順調</li>
+<li>数千万件レベルになるとMySQLがダウンするように。。。</li>
+</ul>
+</li>
+<li><p>IOロックを回避するために
+Mroonga + Spiderストレージエンジンを検討
+数億のメッセージ規模で安定稼働させるには、最初から多数のMroongaノードを用意する必要あり</p></li>
+<li><p>Elasticsearch 0.9の検証
+構成する要素が複雑: クラスター、ノード、インデックス、シャード
+サイジングが必要
+インデックス作成時にシャード数を決める
+シャード数は後から変更できない</p></li>
+<li><p>ダミーメッセージ投入テストを行いながらTry and Error</p></li>
+<li><p>シャード分割数が少なすぎ、書き込み速度が徐々に低下、シャード分割数を増やしてデータ再投入</p></li>
+<li><p>サイジング対策
+インデックスを範囲で区切って細かく分割, シャードも細かく、クラスタ構成も大きなもので</p></li>
+<li><p>i2.xlarge x 6の構成を予定</p></li>
+<li><p>課題</p>
+
+<ul>
+<li>バックアップｘ</li>
+<li>Multi-az x</li>
+<li>アクセス制御 x</li>
+</ul>
+</li>
+</ul>
+
+
+<p>もっとカジュアルに検索システムを開発・運用したい。</p>
+
+<ul>
+<li>2014/3にCloudsearch大幅アップデートで検証開始
+
+<ul>
+<li>初期投入が十分早い</li>
+<li>検索速度も早い</li>
+<li>Multi-AZ運用が可能</li>
+<li>Index Fieldごとにアクセス制御可能</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>CloudSearchを利用した検索アーキテクチャ</h2>
+
+<p>キューを通してワーカーがDynamoDBに履歴を作って、それをまとめてCloudsearchに入れる構成</p>
+
+<h3>機能要件</h3>
+
+<ul>
+<li>複数言語対応</li>
+<li>閲覧権限を持つ全てのGroupChat</li>
+<li>初期投入対象は3.2億件</li>
+<li><p>差分投入で追加、編集、削除を順次行う</p></li>
+<li><p>Domain設計</p>
+
+<ul>
+<li>Scaling Options:
+
+<ul>
+<li>search.m2.2xlarge</li>
+<li>partition count: 4</li>
+</ul>
+</li>
+<li>Index Option
+
+<ul>
+<li>(Multiple Language: 特定の言語に依存しない index fieldを一つ用意)</li>
+<li>言語ごとにIndex fieldを作成、言語判定ライブラリを用意</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>3.2億件の初期データ投入結果</p>
+
+<ul>
+<li>SQSで分割 documents/batch requestを利用</li>
+<li>c3.8xlargeをworker</li>
+<li>30並列で実行</li>
+<li>12時間</li>
+<li>データ投入自体にかかったコストは450ドルくらい</li>
+</ul>
+</li>
+<li><p>差分投入</p>
+
+<ul>
+<li>チャットメッセージ編集・追加・削除ごとにSQS作成</li>
+<li>一定以上たまったらworkerがまとめて投入</li>
+<li>この構成で大きな遅延なくindexできている</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>CloudSearchの課題</h2>
+
+<ul>
+<li><p>検索</p>
+
+<ul>
+<li>記号の検索に対応していない</li>
+<li>アプリケーション側で工夫が必要</li>
+</ul>
+</li>
+<li><p>Cloudwatchのメトリクスがない</p>
+
+<ul>
+<li>代替手段として、describe</li>
+<li>SQSの残キュー数の取得</li>
+<li>muninを使用</li>
+</ul>
+</li>
+<li><p>認証</p>
+
+<ul>
+<li>Scaleoutするためには、現状Proxyが必要</li>
+<li>access policyはグローバルIPが指定可能だが、即時反映されない、実質４０分程度かかる</li>
+</ul>
+</li>
+<li><p>コスト</p>
+
+<ul>
+<li>実質的な運用コストはMroonga分割運用時と比較して約２倍になった</li>
+<li>リザーブドインスタンスがない</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>採用してよかったこと</h2>
+
+<ul>
+<li>保守運用が楽になった</li>
+<li>差分投入が安定</li>
+<li>検索速度の安定、高速</li>
+<li>アプリケーション構成がシンプル</li>
+<li>AWSサポートから日本語でサポートを受けられる</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1752,42 +1955,6 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/21/fabric-reverse-dictionary-1/">逆引きFabric(1)</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-21T08:33:00+09:00" pubdate data-updated="true">Jun 21<span>st</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>環境を整える</h2>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1803,6 +1970,10 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-chatwork/">AWS Summit Tokyo 2014: Chatwork検索機能を支える技術</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/">AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive</a>
       </li>
     
@@ -1816,10 +1987,6 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
     
       <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-cloudfront/">AWS Summit Tokyo 2014: Amazon CloudFrontを利用したサイト高速化およびセキュア配信</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
       </li>
     
   </ul>
