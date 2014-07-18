@@ -9,8 +9,7 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="ソリューションアーキテクトの北迫さんによる、Cloudfrontの活用方法についてです。 普段RTBをやっているので、相手はユーザーのブラウザではなくてSSPやアドネットワークのAPIで、普段CDNを意識することはあまりありません。
-バナー広告の画像やJavaScriptを置いているくらいです。 &hellip;">
+  <meta name="description" content="ソーシャルゲームデベロッパーのGraniの河合さんによるC#のウェブアプリケーションの解説です。 私はWindowsでアプリケーションを書いたことも運用したこともないのですが、かなり昔にMS-DOSでシステム管理は少しやったことがあるので、Microsoftの技術には愛着を持っています。 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +77,219 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-18T13:19:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ソーシャルゲームデベロッパーのGraniの河合さんによるC#のウェブアプリケーションの解説です。</p>
+
+<p>私はWindowsでアプリケーションを書いたことも運用したこともないのですが、かなり昔にMS-DOSでシステム管理は少しやったことがあるので、Microsoftの技術には愛着を持っています。</p>
+
+<p>一番驚いたのは、C#の機能をを活かして処理をほぼ非同期で行っているというところでした。
+PHPなどでは絶対無理な処理なので、これはすごいなと。
+私のプロダクトでやるならScalaになるのでしょうが、ここまでの境地に達するのはよほど言語に精通していないといけない気がします。</p>
+
+<p>ソーシャルゲームのレスポンスで全て100msecを切るように返すことの大変さは分かっているつもりなので、レベルの違いを感じました。
+Redisのパイプライン処理いいですね。</p>
+
+<p>とにかくクールだなと思いました。ひたすら感心。</p>
+
+<p>門外漢のC#やWindowsの話をあえて聞いてみてよかったです。</p>
+
+<ul>
+<li>AWS + C#によるウェブソーシャルゲーム</li>
+<li>C# 50%, AWS 20%, その他 30%ぐらいの話</li>
+<li>AWSだからといってC#を使うのに特別なことはない</li>
+</ul>
+
+
+<h2>using CSharp;</h2>
+
+<ul>
+<li>C#の開発にとことんこだわっている</li>
+<li>もとはPHPだったが開発効率に不満を感じた</li>
+<li>半年後にC#に全面移行</li>
+<li><p>AWSを使っていたのでそのまま移行した</p></li>
+<li><p>クライアントサイドからサーバーサイドまで全てをC#で！</p></li>
+</ul>
+
+
+<p>AWS + C#は全く問題ない。</p>
+
+<ul>
+<li>100 server</li>
+<li>10000 req/sec</li>
+<li>1000000000pv/day</li>
+</ul>
+
+
+<p>IIS8 + RDS + Redis(r3.2xlarge)20台</p>
+
+<h2>なぜRDBMSを選択するのか</h2>
+
+<ul>
+<li>NoSQLでいい？けれど複雑化をおさえたい</li>
+<li>RDBMSは単純なクエリなら1msec以下で返すがDynamoDBは・・・</li>
+<li>周辺ツールが充実</li>
+<li>スケールアップや分割で対応できるなら、スケールアウトに固執することもない</li>
+</ul>
+
+
+<h3>何よりRDSが良い</h3>
+
+<p>手放し管理、Restore To Point in Timeには救われた</p>
+
+<ul>
+<li>SQL Server vs MySQL
+
+<ul>
+<li>C#としてはSQL Serverのほうが相性はいい</li>
+<li>しかしRDSとしてみるとSQL Serverは貧弱</li>
+<li>今はあるがMulti-AZも無かったし、ProvisionedIOPSの限界値も低かった</li>
+<li>結果、MySQLを使っている</li>
+</ul>
+</li>
+</ul>
+
+
+<p>r3.8xlargeが最強</p>
+
+<p>垂直分割 vs 水平分割</p>
+
+<p>機能単位の垂直分割を採用</p>
+
+<p>水平分割は避ける: 記述可能なクエリに大きな制限がかかってしまう アドホックなクエリでの集計が不可能になる
+ほとんどのアプリケーションは、水平分割をする必要はないのでは？</p>
+
+<p>DB管理はGUIで
+HeidiSQLがおすすめ　phpMyAdminやCUIは積極的にdisりたい</p>
+
+<p>アプリケーションからはMasterのみ参照
+いまどきのRDSは十分パワフルなので、Slaveに分散するのは無用な複雑さを生むだけ
+レプリケーション遅延は起きるので。</p>
+
+<p>同一AZに配置する
+AZを越えると普段0.5msec程度のクエリが2msec程度になる</p>
+
+<p>C#的な活用としては、コネクションを型で分けるとコンパイルでチェックできる
+生のSQLを書いている</p>
+
+<p>テーブル定義から自動生成
+テーブルと1:1でひもづいたクラスがある
+T4テンプレート + ADO.net</p>
+
+<p>半自動生成くらいの位置づけ</p>
+
+<ul>
+<li><p>全階層でのキャッシュの徹底</p>
+
+<ul>
+<li>データベース</li>
+<li>Memcache-Redis</li>
+<li>Static変数: アイテム名など不変の情報はキャッシュ　</li>
+<li>リクエスト単位</li>
+</ul>
+</li>
+</ul>
+
+
+<p>アプリケーションコードによるJOIN</p>
+
+<p>LINQ to Objectsで簡単。SQLよりもずっと楽</p>
+
+<h2>Redis</h2>
+
+<p>RDSの不得意な部分を補える
+高パフォーマンスなのでMemcached代わりのキャッシュ用途に
+用途ごとのグループ分けと単純分散</p>
+
+<p>Master Slave構成をとっている
+dump出力時にCPUをくうので</p>
+
+<p>ElastiCache Redisは試したときにパフォーマンスがでなかったので使っていない</p>
+
+<p>Protocol Buffersを使っている
+高速・省サイズなので</p>
+
+<h2>Performance + Async</h2>
+
+<p>100msecを切るように作っている
+C# 5.0を活用</p>
+
+<p>言語構文レベルでサポートされる非同期
+同期と同じように非同期が書ける Graniではコード全体が非同期で書かれている</p>
+
+<p>Redisならパイプライン化可能
+全てが非同期で自動でパイプライン化される</p>
+
+<p>性能と設計を両立できる</p>
+
+<h2>Log for performance</h2>
+
+<p>外部通信を全て記録する
+アプリケーション側で送信前後をフックして記録
+後述するGlimpseやSumo Logicで解析する
+アプリ側でやると負荷がない</p>
+
+<h3>Glimpse &ndash; 可視化</h3>
+
+<p>全体の実行時間のほか、あらゆるメトリックスを常時可視化
+<a href="http://getglimpse.com">http://getglimpse.com</a></p>
+
+<p>Explainの常時表示　手動でExplainはやらない
+Redis送受信の表示</p>
+
+<h3>日常的開発</h3>
+
+<p>Git + GitHub
+Jenkins
+DeployはValentia(自社ツール)</p>
+
+<p>Sumo Logicでログ解析
+New Relicでモニタリング</p>
+
+<p>Semantic Logging + Redshift + Tableau
+<a href="http://slab.codeplex.com">http://slab.codeplex.com</a></p>
+
+<h2>まとめ</h2>
+
+<ul>
+<li>C# + AWSは現実界</li>
+<li>構成は堅く、シンプルに</li>
+<li>環境は常に最新に</li>
+</ul>
+
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1621,416 +1833,6 @@ EMRで前処理
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/31/dig-into-jdbc-7-rowset-object/">最速ウェブアプリのためのJDBC再入門(7) RowSet Objects</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-31T08:42:00+09:00" pubdate data-updated="true">May 31<span>st</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>RowSetはResultSetの拡張</h2>
-
-<p>RowSet ObjectはResultSetを拡張したクラスです。ResultSetがデータベースの実装をそのまま引き継ぐタイプの実装であるのに対し、RowSetはアプリケーション側で扱いやすいように機能が追加されています。</p>
-
-<p>RowSetはJavaBeansでもあります。JavaBeansとは、下記のような特徴を持ちます。</p>
-
-<ul>
-<li>引数の無いコンストラクタで直接インスタンス化できる</li>
-<li>getter/setterがある</li>
-<li>Serializableである</li>
-</ul>
-
-
-<h2>RowSet Objectの種類</h2>
-
-<p>RowSetには主に下記の5種類のインタフェースがあります。</p>
-
-<p>[接続維持型]</p>
-
-<ul>
-<li>JDBCRowSet</li>
-</ul>
-
-
-<p>接続型のRowSet</p>
-
-<p>[接続非維持型]</p>
-
-<ul>
-<li>CachedRowSet</li>
-</ul>
-
-
-<p>データをDBから取得後、オブジェクト内にキャッシュし、接続を切断する。</p>
-
-<ul>
-<li>WebRowSet</li>
-</ul>
-
-
-<p>CachedRowSetにXMLの拡張がついている</p>
-
-<ul>
-<li>JoinRowSet</li>
-</ul>
-
-
-<p>WebRowSetの拡張で、別テーブル同士のJOINができる</p>
-
-<ul>
-<li>FilteredRowSet</li>
-</ul>
-
-
-<p>WebRowSetの拡張で、データのフィルタリング機能を持つ</p>
-
-<p>この中で、使いそうだと感じたCachedRowSetとJoinRowSetを試してみます。</p>
-
-<p>Using CachedRowSetObjects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
-<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/cachedrowset.html</a></p>
-
-<p>Using JoinRowSet Objects (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
-<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/joinrowset.html</a></p>
-
-<h2>CachedRowSet: 更新時にコンフリクトした場合の解決, 他のオブジェクトへのメッセージ機能</h2>
-
-<p>1つ1つの処理が短く、長くても数百ミリ秒でレスポンスを返すウェブだとあまり恩恵がないかもしれないのですが、CachedObjectはDBからデータを取得した後、即座に接続を切断(実際にはコネクションプールに戻す)しても、オブジェクト自体はデータを保持しています。</p>
-
-<p>ResultSetはConnectionから用意したStatementオブジェクトから返されるものなので、DBへの接続を保持している必要があったので、コネクションプールが枯渇しやすい状況においてはメリットになるかもしれません。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">cachedRowSet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM COFFEES&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">connection</span><span class="o">);</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>接続の取得方法はいくつかありますが、今回はexecuteのときにconnectionを渡すようにしています。
-下記のようにDataSouceを渡す方法も使えます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">cachedRowSet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">setDataSouceName</span><span class="o">(</span><span class="s">&quot;java:comp/env/jdbc/continuousops&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM COFFEES&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">execute</span><span class="o">();</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>他のオブジェクトに通知をしたい場合、addRowSetListener()で指定できます。
-RowSetListenerは下記の3つのイベントをサポートしています。</p>
-
-<ul>
-<li>rowSetChanged</li>
-<li>rowChanged</li>
-<li>cursorMoved</li>
-</ul>
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">addRowSetListener</span><span class="o">(</span><span class="k">new</span> <span class="n">ExampleRowSetListener</span><span class="o">());</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>CachedRowSetはオブジェクトにキャッシュしているデータなので、データを更新してコミットしようとした際に、元のデータとズレが生じる可能性があります。CachedRowSetはそれが発生した際に例外を投げる仕組みが用意されているので、それを試してみました。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="c1">//getting first cachedRowSet</span>
-</span><span class='line'><span class="n">cachedRowSet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM COFFEES&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">connection</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="c1">//getting second cachedRowSet</span>
-</span><span class='line'><span class="n">cachedRowSet2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM COFFEES&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">connection</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">next</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">updateInt</span><span class="o">(</span><span class="s">&quot;SUP_ID&quot;</span><span class="o">,</span> <span class="mi">101</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">updateRow</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet</span><span class="o">.</span><span class="na">acceptChanges</span><span class="o">();</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">next</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">updateInt</span><span class="o">(</span><span class="s">&quot;SUP_ID&quot;</span><span class="o">,</span> <span class="mi">150</span><span class="o">);</span>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">updateRow</span><span class="o">();</span>
-</span><span class='line'><span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">acceptChanges</span><span class="o">();</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>cachedRowSetのインスタンスを2つ用意し、データをそれぞれ取得した後データを更新かけてみます。こうすると、1つめのcachedRowSetを更新した後、2つめのcachedRowSetはオブジェクト内のデータとDBのレコードにずれが出るので、一番最後の文である<code>cachedRowSet2.acceptChanges();</code>を実行したときに例外が投げられます。</p>
-
-<p>それが、<code>SyncProviderException</code>です。これをcatchしてコンフリクトを解決させようとしました。下記はほとんどOracleのサンプルコードのままです。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-<span class='line-number'>35</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">SyncProviderException</span> <span class="n">spe</span><span class="o">){</span>
-</span><span class='line'>    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;conflict detected.&quot;</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">SyncResolver</span> <span class="n">resolver</span> <span class="o">=</span> <span class="n">spe</span><span class="o">.</span><span class="na">getSyncResolver</span><span class="o">();</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="n">Object</span> <span class="n">crsValue</span><span class="o">;</span>
-</span><span class='line'>    <span class="n">Object</span> <span class="n">resolverValue</span><span class="o">;</span>
-</span><span class='line'>    <span class="n">Object</span> <span class="n">resolvedValue</span><span class="o">;</span>
-</span><span class='line'>
-</span><span class='line'>    <span class="k">try</span> <span class="o">{</span>
-</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">resolver</span><span class="o">.</span><span class="na">nextConflict</span><span class="o">())</span> <span class="o">{</span>
-</span><span class='line'>
-</span><span class='line'>            <span class="k">if</span> <span class="o">(</span><span class="n">resolver</span><span class="o">.</span><span class="na">getStatus</span><span class="o">()</span> <span class="o">==</span> <span class="n">SyncResolver</span><span class="o">.</span><span class="na">UPDATE_ROW_CONFLICT</span><span class="o">)</span> <span class="o">{</span>
-</span><span class='line'>                <span class="kt">int</span> <span class="n">row</span> <span class="o">=</span> <span class="n">resolver</span><span class="o">.</span><span class="na">getRow</span><span class="o">();</span>
-</span><span class='line'>                <span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">absolute</span><span class="o">(</span><span class="n">row</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'>                <span class="kt">int</span> <span class="n">colCount</span> <span class="o">=</span> <span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">getMetaData</span><span class="o">().</span><span class="na">getColumnCount</span><span class="o">();</span>
-</span><span class='line'>                <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="n">j</span> <span class="o">&lt;=</span> <span class="n">colCount</span><span class="o">;</span> <span class="n">j</span><span class="o">++)</span> <span class="o">{</span>
-</span><span class='line'>                    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;conflict value: &quot;</span> <span class="o">+</span> <span class="n">resolver</span><span class="o">.</span><span class="na">getConflictValue</span><span class="o">(</span><span class="n">j</span><span class="o">));</span>
-</span><span class='line'>                    <span class="k">if</span> <span class="o">(</span><span class="n">resolver</span><span class="o">.</span><span class="na">getConflictValue</span><span class="o">(</span><span class="n">j</span><span class="o">)</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
-</span><span class='line'>                        <span class="n">crsValue</span> <span class="o">=</span> <span class="n">cachedRowSet2</span><span class="o">.</span><span class="na">getObject</span><span class="o">(</span><span class="n">j</span><span class="o">);</span>
-</span><span class='line'>                        <span class="n">resolverValue</span> <span class="o">=</span> <span class="n">resolver</span><span class="o">.</span><span class="na">getConflictValue</span><span class="o">(</span><span class="n">j</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'>                        <span class="n">resolvedValue</span> <span class="o">=</span> <span class="n">crsValue</span><span class="o">;</span>
-</span><span class='line'>
-</span><span class='line'>                        <span class="n">resolver</span><span class="o">.</span><span class="na">setResolvedValue</span><span class="o">(</span><span class="n">j</span><span class="o">,</span> <span class="n">resolvedValue</span><span class="o">);</span>
-</span><span class='line'>                        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;conflict resolved.&quot;</span><span class="o">);</span>
-</span><span class='line'>                    <span class="o">}</span>
-</span><span class='line'>                <span class="o">}</span>
-</span><span class='line'>            <span class="o">}</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>    <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
-</span><span class='line'>        <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>ただ、これは実際にはうまく動作させることができていません。
-下記のようになってしまい、conflictが検知できるものの、実際にループを回すとコンフリクトが生じているデータが取得できず、そのままループが終わってしまいます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">conflict</span> <span class="n">detected</span><span class="o">.</span>
-</span><span class='line'><span class="n">conflict</span> <span class="nl">value:</span> <span class="kc">null</span>
-</span><span class='line'><span class="n">conflict</span> <span class="nl">value:</span> <span class="kc">null</span>
-</span><span class='line'><span class="n">conflict</span> <span class="nl">value:</span> <span class="kc">null</span>
-</span><span class='line'><span class="n">conflict</span> <span class="nl">value:</span> <span class="kc">null</span>
-</span><span class='line'><span class="n">conflict</span> <span class="nl">value:</span> <span class="kc">null</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>結果としては、1つ目の更新が反映され、2つ目の更新は無視されるという挙動になります。
-これがMySQLとかConnector-Jの実装によるものなのか、私が書いたコードの問題なのかは結局のところ分かりませんでした。</p>
-
-<h2>JoinRowSet: 2つのRowSetからテーブル同士のJOINと同等のことを行う</h2>
-
-<p>もう一つの興味深い機能である、RowSetのジョイン機能も試してみました。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">COFFEES</span><span class="o">;</span>
-</span><span class='line'><span class="o">+--------------------+--------+-------+-------+-------+</span>
-</span><span class='line'><span class="o">|</span> <span class="n">COF_NAME</span>           <span class="o">|</span> <span class="n">SUP_ID</span> <span class="o">|</span> <span class="n">PRICE</span> <span class="o">|</span> <span class="n">SALES</span> <span class="o">|</span> <span class="n">TOTAL</span> <span class="o">|</span>
-</span><span class='line'><span class="o">+--------------------+--------+-------+-------+-------+</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Amaretto</span>           <span class="o">|</span>    <span class="mi">101</span> <span class="o">|</span>  <span class="mf">5.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Amaretto_decaf</span>     <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span> <span class="mf">10.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Colombian</span>          <span class="o">|</span>    <span class="mi">101</span> <span class="o">|</span>  <span class="mf">0.07</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Colombian_Decaf</span>    <span class="o">|</span>    <span class="mi">101</span> <span class="o">|</span>  <span class="mf">8.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Espresso</span>           <span class="o">|</span>    <span class="mi">150</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">French_Roast</span>       <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">8.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">French_Roast_Decaf</span> <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Hazelnut</span>           <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span> <span class="n">Hazelnut_decaf</span>     <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span> <span class="mf">10.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
-</span><span class='line'><span class="o">+--------------------+--------+-------+-------+-------+</span>
-</span><span class='line'><span class="mi">9</span> <span class="n">rows</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">SUPPLIERS</span><span class="o">;</span>
-</span><span class='line'><span class="o">+--------+---------------------------+---------------------+--------------+-------+-------+</span>
-</span><span class='line'><span class="o">|</span> <span class="n">SUP_ID</span> <span class="o">|</span> <span class="n">SUP_NAME</span>                  <span class="o">|</span> <span class="n">STREET</span>              <span class="o">|</span> <span class="n">CITY</span>         <span class="o">|</span> <span class="n">STATE</span> <span class="o">|</span> <span class="n">ZIP</span>   <span class="o">|</span>
-</span><span class='line'><span class="o">+--------+---------------------------+---------------------+--------------+-------+-------+</span>
-</span><span class='line'><span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span> <span class="n">Superior</span> <span class="n">Coffee</span>           <span class="o">|</span> <span class="mi">1</span> <span class="n">Party</span> <span class="n">Place</span>       <span class="o">|</span> <span class="n">Mendocino</span>    <span class="o">|</span> <span class="n">CA</span>    <span class="o">|</span> <span class="mi">95460</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span>    <span class="mi">101</span> <span class="o">|</span> <span class="n">Acme</span><span class="o">,</span> <span class="n">Inc</span><span class="o">.</span>                <span class="o">|</span> <span class="mi">99</span> <span class="n">Market</span> <span class="n">Street</span>    <span class="o">|</span> <span class="n">Groundsville</span> <span class="o">|</span> <span class="n">CA</span>    <span class="o">|</span> <span class="mi">95199</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span>    <span class="mi">150</span> <span class="o">|</span> <span class="n">The</span> <span class="n">High</span> <span class="n">Ground</span>           <span class="o">|</span> <span class="mi">100</span> <span class="n">Coffee</span> <span class="n">Lane</span>     <span class="o">|</span> <span class="n">Meadows</span>      <span class="o">|</span> <span class="n">CA</span>    <span class="o">|</span> <span class="mi">93966</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span>    <span class="mi">456</span> <span class="o">|</span> <span class="n">Restaurant</span> <span class="n">Supplies</span><span class="o">,</span> <span class="n">Inc</span><span class="o">.</span> <span class="o">|</span> <span class="mi">200</span> <span class="n">Magnolia</span> <span class="n">Street</span> <span class="o">|</span> <span class="n">Meadows</span>      <span class="o">|</span> <span class="n">CA</span>    <span class="o">|</span> <span class="mi">93966</span> <span class="o">|</span>
-</span><span class='line'><span class="o">|</span>    <span class="mi">927</span> <span class="o">|</span> <span class="n">Professional</span> <span class="n">Kitchen</span>      <span class="o">|</span> <span class="mi">300</span> <span class="n">Daisy</span> <span class="n">Avenue</span>    <span class="o">|</span> <span class="n">Groundsville</span> <span class="o">|</span> <span class="n">CA</span>    <span class="o">|</span> <span class="mi">95199</span> <span class="o">|</span>
-</span><span class='line'><span class="o">+--------+---------------------------+---------------------+--------------+-------+-------+</span>
-</span><span class='line'><span class="mi">5</span> <span class="n">rows</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>このように、COFFEESテーブルとSUPPLIERテーブルがあるとして、サプライヤー名を指定したときにそのIDをキーにしてコーヒーリストから商品名を持ってきたい・・・というようなケースはテーブルジョインのよくあるケースです。その際、普通は</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='sql'><span class='line'><span class="k">SELECT</span> <span class="k">c</span><span class="p">.</span><span class="n">COF_NAME</span>
-</span><span class='line'><span class="k">FROM</span> <span class="n">COFFEES</span> <span class="k">AS</span> <span class="k">c</span><span class="p">,</span> <span class="n">SUPPLIERS</span> <span class="k">AS</span> <span class="n">s</span>
-</span><span class='line'><span class="k">WHERE</span> <span class="k">c</span><span class="p">.</span><span class="n">SUP_ID</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="n">SUP_ID</span>
-</span><span class='line'><span class="k">AND</span> <span class="n">SUP_NAME</span> <span class="o">=</span> <span class="ss">&quot;Acme, Inc.&quot;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>などとやるのが普通ですが、これを各テーブルのRowSetをJoinRowSetを使ってJavaコード内でジョインさせることができます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">coffees</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">coffees</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM COFFEES&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">coffees</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">connection</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">suppliers</span> <span class="o">=</span> <span class="k">new</span> <span class="n">CachedRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">suppliers</span><span class="o">.</span><span class="na">setCommand</span><span class="o">(</span><span class="s">&quot;SELECT * FROM SUPPLIERS&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">suppliers</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="n">connection</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">jrs</span> <span class="o">=</span> <span class="k">new</span> <span class="n">JoinRowSetImpl</span><span class="o">();</span>
-</span><span class='line'><span class="n">jrs</span><span class="o">.</span><span class="na">addRowSet</span><span class="o">(</span><span class="n">coffees</span><span class="o">,</span> <span class="s">&quot;SUP_ID&quot;</span><span class="o">);</span>
-</span><span class='line'><span class="n">jrs</span><span class="o">.</span><span class="na">addRowSet</span><span class="o">(</span><span class="n">suppliers</span><span class="o">,</span> <span class="s">&quot;SUP_ID&quot;</span><span class="o">);</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Coffees bought from &quot;</span> <span class="o">+</span> <span class="n">supplierName</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span><span class="o">);</span>
-</span><span class='line'><span class="k">while</span> <span class="o">(</span><span class="n">jrs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
-</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">jrs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="s">&quot;SUP_NAME&quot;</span><span class="o">).</span><span class="na">equals</span><span class="o">(</span><span class="n">supplierName</span><span class="o">))</span> <span class="o">{</span>
-</span><span class='line'>        <span class="n">String</span> <span class="n">coffeeName</span> <span class="o">=</span> <span class="n">jrs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span>
-</span><span class='line'>        <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;     &quot;</span> <span class="o">+</span> <span class="n">coffeeName</span><span class="o">);</span>
-</span><span class='line'>    <span class="o">}</span>
-</span><span class='line'><span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>これでJOINしたSQLと同等の結果が得られます。</p>
-
-<p>実際には使う機会は多くなさそうですが、データベースをシャーディングしていて別データベースにあるテーブルをJOINしたい場合などには便利に使えると思いました。</p>
-
-<p>今回のソースはこちらです。</p>
-
-<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter7</a></p>
-
-<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -2046,6 +1848,10 @@ RowSetListenerは下記の3つのイベントをサポートしています。</
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-cloudfront/">AWS Summit Tokyo 2014: Amazon CloudFrontを利用したサイト高速化およびセキュア配信</a>
       </li>
     
@@ -2059,10 +1865,6 @@ RowSetListenerは下記の3つのイベントをサポートしています。</
     
       <li class="post">
         <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
       </li>
     
   </ul>
