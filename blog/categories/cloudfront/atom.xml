@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: cloudfront | Continuous Ops]]></title>
+  <link href="http://chokkoyamada.github.io/blog/categories/cloudfront/atom.xml" rel="self"/>
+  <link href="http://chokkoyamada.github.io/"/>
+  <updated>2014-07-18T13:12:33+09:00</updated>
+  <id>http://chokkoyamada.github.io/</id>
+  <author>
+    <name><![CDATA[Naoyuki Yamada]]></name>
+    <email><![CDATA[yamada_naoyuki@cyberagent.co.jp]]></email>
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon CloudFrontを利用したサイト高速化およびセキュア配信]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-cloudfront/"/>
+    <updated>2014-07-18T12:21:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-cloudfront</id>
+    <content type="html"><![CDATA[<p>ソリューションアーキテクトの北迫さんによる、Cloudfrontの活用方法についてです。</p>
+
+<p>普段RTBをやっているので、相手はユーザーのブラウザではなくてSSPやアドネットワークのAPIで、普段CDNを意識することはあまりありません。
+バナー広告の画像やJavaScriptを置いているくらいです。
+将来、動画配信とかするなら詳しくなっておきたいなと・・・</p>
+
+<p>ただ現時点でも、劇的にコストや負荷を軽減する方法として、CDNとしてのCloudfrontにはまだ利用シーンがあるのではと思って考えています。</p>
+
+<h2>サイト高速化</h2>
+
+<p>DNSの仕組みを使って最適なエッジへ誘導
+52 Edge locations</p>
+
+<p>80:20の法則
+ページ本体のレスポンスタイムは20%に過ぎず、それ以外の部分に80%の時間を使っている</p>
+
+<p>ispとispの間のixのところから足が生える形でAWS edgeがある</p>
+
+<h3>CDN Edge Locationの活用</h3>
+
+<p>分散型CDNと集中型のCDN</p>
+
+<p>分散型CDN: ユーザーに近いISPのところにEdgeがある キャッシュヒット率が低い傾向
+集中型CDN: キャッシュ共有 Cloudfrontはこちら</p>
+
+<p>CloudfrontのEdgeに可能な限りキャッシュさせることが重要</p>
+
+<ul>
+<li><p>静的コンテンツ 805
+キャッシュTTLも可能な限り長く、クライアント側にもキャッシュさせる</p></li>
+<li><p>動的コンテンツ 20%</p>
+
+<ul>
+<li>ページ共通のもの</li>
+<li>パーソナライズされたもの
+
+<ul>
+<li>動的に生成されるが、ページ自体は一定期間共通 QueryStringを活用しているもの</li>
+<li>HTTPヘッダによるページ切り替えしているもの</li>
+<li>cache-conrtol headerとminimum ttlで調整</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+
+<p>キャッシュしすぎるとEdgeを通すオーバーヘッドはないか？
+last-modified/ETag ヘッダ
+if-modified-since 更新なしなら304を返す</p>
+
+<ul>
+<li><p>ヒット率向上のための要素</p>
+
+<ul>
+<li>キャッシュ時間</li>
+<li>URLの共通化</li>
+<li>Etag/Last-modifiedヘッダの活用</li>
+<li>Query Stringsパラメータの固定化</li>
+<li>転送対象Header値の固定化</li>
+</ul>
+</li>
+<li><p>Cloudfrontは完全一致でキャッシュを共有</p></li>
+<li><p>キャッシュヒット状況はレスポンスヘッダで</p>
+
+<ul>
+<li>X-Cacheの値を見る</li>
+<li>X-Amz-Cf-IdにIDが入る</li>
+</ul>
+</li>
+</ul>
+
+
+<p>キャッシュができない動的ページはプロキシとして利用</p>
+
+<p>Dynamic Contens Acceleration</p>
+
+<ul>
+<li>Post/Put/Header/Cookie対応</li>
+</ul>
+
+
+<p>CloudfrontのEdgeを経由させても多くの動的ページが扱えるようになった</p>
+
+<ul>
+<li>Keep-Alive Connection:  3 way handshakeのカット</li>
+</ul>
+
+
+<p>CDN &ndash; Originの間でKeepAliveする
+HTTPS通信ならSSL Terminationでより効果が大きい</p>
+
+<ul>
+<li>TCPスロースタート</li>
+</ul>
+
+
+<p>ネットワークの輻輳を回避するために少しつづパケットを増やしながら量を増やしていく仕組み</p>
+
+<ul>
+<li>DNS Lookupの高速化</li>
+</ul>
+
+
+<p>Route53を活用するとLookupが早くなる: Cloudfrontと同じロケーションにサーバーがある &ndash;> 近い
+CloudfrontはAlternative Domain Name: レコードセットのTypeをCNAMEではなくAレコードのエイリアスを利用することでクエリ回数の削減が可能</p>
+
+<p>Cloudfront behaviorの活用
+正規表現でURL毎に異なるキャッシュポリシーを適用できる
+オリジンサーバーのほうで設定をする必要がない　</p>
+
+<h2>セキュア配信</h2>
+
+<ul>
+<li><p>Httpsサポート</p></li>
+<li><p>GEO Restriction</p></li>
+<li><p>Signed URL(署名付きURL)</p>
+
+<ul>
+<li>Cloudfront経由で配信するコンテンツに対して期間指定URLを生成することで、配信コンテンツを保護する機能</li>
+<li>ポリシーを指定する</li>
+<li>Origin Access Identity(OAI)を使うと特定のCloudfrontからしかアクセスできないようにできる。一般のサーバーから制限する場合はIPアドレスで(CloudfrontのIPは公開されている)</li>
+<li>プレミアムコンテンツ配信, Streaming配信などに利用</li>
+<li>有効時間の設定は、ダウンロードならサイズにかかわらず短時間でOK　ストリーミングは映像・音声の再生時間+αを設定</li>
+<li>Behavior毎の設定、正規表現を利用してDistributionを分けなくても特定のコンテンツのみ保護可能</li>
+<li>Cache-controlヘッダも同様に利用できる</li>
+</ul>
+</li>
+</ul>
+
+
+<h2>まとめ</h2>
+
+<ul>
+<li>インフラアプローチでの高速化施策</li>
+<li>動的コンテンツにもうまく活用できる</li>
+<li>セキュアなコンテンツ配信も容易かつ高速化が可能</li>
+</ul>
+
+
+<p>2014/9/9 AWS Cloud Strage &amp; DB Day
+<a href="http://csd.awseventsjapan.com">http://csd.awseventsjapan.com</a></p>
+]]></content>
+  </entry>
+  
+</feed>

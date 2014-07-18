@@ -9,7 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="Cursorの自由な移動 引き続き下記のページを見ていきます。後半部分の、カーソルを移動させたりrowを更新したりする部分がConnector-Jで実際にできるかどうかを確認していきます。 Retrieving and Modifying Values from Result Sets (The &hellip;">
+  <meta name="description" content="一般的なトランザクション処理の流れ 複数の処理をまとめてコミットorロールバックできるトランザクション機能。JDBCでの基本フローを試してみます。
+前回と同様下記の内容を参考にしています。 Using Transactions (The Java™ Tutorials > JDBC&trade; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +78,319 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/29/dig-into-jdbc-6/">最速ウェブアプリのためのJDBC再入門(6) トランザクション</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-29T08:50:00+09:00" pubdate data-updated="true">May 29<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>一般的なトランザクション処理の流れ</h2>
+
+<p>複数の処理をまとめてコミットorロールバックできるトランザクション機能。JDBCでの基本フローを試してみます。
+前回と同様下記の内容を参考にしています。</p>
+
+<p>Using Transactions (The Java™ Tutorials > JDBC&trade; Database Access > JDBC Basics)
+<a href="http://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html">http://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html</a></p>
+
+<p>下記のようなレコードがあるとして、</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>mysql&gt; SELECT * FROM COFFEES WHERE COF_NAME IN ("Amaretto", "Espresso");
+</span><span class='line'>+----------+--------+-------+-------+-------+
+</span><span class='line'>| COF_NAME | SUP_ID | PRICE | SALES | TOTAL |
+</span><span class='line'>+----------+--------+-------+-------+-------+
+</span><span class='line'>| Amaretto |     49 |  9.99 |     0 |     0 |
+</span><span class='line'>| Espresso |    150 |  9.99 |     0 |     0 |
+</span><span class='line'>+----------+--------+-------+-------+-------+
+</span><span class='line'>2 rows in set (0.00 sec)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>これらのPRICEをひとまとまりで更新してみます。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">context</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InitialContext</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">DataSource</span> <span class="n">dataSource</span> <span class="o">=</span> <span class="o">(</span><span class="n">DataSource</span><span class="o">)</span><span class="n">context</span><span class="o">.</span><span class="na">lookup</span><span class="o">(</span><span class="s">&quot;java:comp/env/jdbc/continuousops&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">connection</span> <span class="o">=</span> <span class="n">dataSource</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">connection</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="kc">false</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">preparedStatement1</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;UPDATE COFFEES SET PRICE=? WHERE COF_NAME = &#39;Amaretto&#39; LIMIT 1&quot;</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">preparedStatement2</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;UPDATE COFFEES SET PRICE=? WHERE COF_NAME = &#39;Espresso&#39; LIMIT 1&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">preparedStatement1</span><span class="o">.</span><span class="na">setFloat</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mf">7.99f</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">preparedStatement1</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">preparedStatement2</span><span class="o">.</span><span class="na">setFloat</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mf">6.99f</span><span class="o">);</span>
+</span><span class='line'>  <span class="n">preparedStatement2</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">connection</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'><span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">NamingException</span> <span class="o">|</span> <span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">connection</span><span class="o">.</span><span class="na">rollback</span><span class="o">();</span>
+</span><span class='line'>  <span class="n">e</span><span class="o">.</span><span class="na">printStackTrace</span><span class="o">();</span>
+</span><span class='line'><span class="o">}</span><span class="k">finally</span><span class="o">{</span>
+</span><span class='line'>  <span class="n">connection</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="kc">true</span><span class="o">);</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>実行結果</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">COFFEES</span> <span class="n">WHERE</span> <span class="n">COF_NAME</span> <span class="n">IN</span> <span class="o">(</span><span class="s">&quot;Amaretto&quot;</span><span class="o">,</span> <span class="s">&quot;Espresso&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">COF_NAME</span> <span class="o">|</span> <span class="n">SUP_ID</span> <span class="o">|</span> <span class="n">PRICE</span> <span class="o">|</span> <span class="n">SALES</span> <span class="o">|</span> <span class="n">TOTAL</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Amaretto</span> <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">7.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Espresso</span> <span class="o">|</span>    <span class="mi">150</span> <span class="o">|</span>  <span class="mf">6.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="mi">2</span> <span class="n">rows</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>JDBCでのトランザクションは、</p>
+
+<ul>
+<li>connection.setAutoCommit(false)でトランザクション開始</li>
+<li>connection.commit()でコミット</li>
+<li>connection.rollback()でロールバック</li>
+<li>connection.setAutoCommit(true)で元のモードに戻す　</li>
+</ul>
+
+
+<p>というのが一連の流れです。</p>
+
+<h2>トランザクション分離レベル: REPEATABLE READ</h2>
+
+<p>トランザクションは、更新を一括で行うという意味の他に、トランザクション処理中はデータの一貫性が保証されるという意味も持っています。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">show</span> <span class="n">variables</span> <span class="n">like</span> <span class="err">&#39;</span><span class="o">%</span><span class="n">isolation</span><span class="err">&#39;</span><span class="o">;</span>
+</span><span class='line'><span class="o">+---------------+-----------------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Variable_name</span> <span class="o">|</span> <span class="n">Value</span>           <span class="o">|</span>
+</span><span class='line'><span class="o">+---------------+-----------------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">tx_isolation</span>  <span class="o">|</span> <span class="n">REPEATABLE</span><span class="o">-</span><span class="n">READ</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+---------------+-----------------+</span>
+</span><span class='line'><span class="mi">1</span> <span class="n">row</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>MySQL5.5のデフォルトのトランザクション分離レベルはREPEATABLE READです。
+JDBCのトランザクション分離レベルは使用しているデータベースの設定に従うので、下記のコードで調べてみると、</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kt">int</span> <span class="n">isolationLevel</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">getTransactionIsolation</span><span class="o">();</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>結果は、4となります。</p>
+
+<p>Constant Field Values (Java Platform SE 7 )
+<a href="http://docs.oracle.com/javase/7/docs/api/constant-values.html#java.sql.Connection.TRANSACTION_READ_COMMITTED">http://docs.oracle.com/javase/7/docs/api/constant-values.html#java.sql.Connection.TRANSACTION_READ_COMMITTED</a></p>
+
+<p>4はREPEATABLE_READとなっているので、MySQLの設定を使っていると確認できます。</p>
+
+<p>アプリケーションによって性能を優先したい場合、一段階下げてREAD COMMITEDで運用するようにしてもよいと思います。InnoDBはREPEATABLE READでネクストキーロックをするので、INSERT性能が下がってしまうためです。</p>
+
+<h2>Rollbackする地点を指定：Sevepointの使用</h2>
+
+<p>JDBCには一歩進んだ機能として、トランザクション中の任意のポイントまでロールバックできるSavepointという仕組みが用意されています。これをConnector-Jでも使用可能か試してみます。</p>
+
+<p>下記のようなコードの場合、savepoint2まで途中でロールバックしているので、ステートメント1の更新は反映されるが、ステートメント2の更新はロールバックされているという挙動になります。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">Savepoint</span> <span class="n">savepoint1</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>    <span class="n">Savepoint</span> <span class="n">savepoint2</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>    <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">context</span> <span class="o">=</span> <span class="k">new</span> <span class="n">InitialContext</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">DataSource</span> <span class="n">dataSource</span> <span class="o">=</span> <span class="o">(</span><span class="n">DataSource</span><span class="o">)</span><span class="n">context</span><span class="o">.</span><span class="na">lookup</span><span class="o">(</span><span class="s">&quot;java:comp/env/jdbc/continuousops&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">connection</span> <span class="o">=</span> <span class="n">dataSource</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">connection</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="kc">false</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">savepoint1</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">setSavepoint</span><span class="o">(</span><span class="s">&quot;point1&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">preparedStatement1</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;UPDATE COFFEES SET PRICE=? WHERE COF_NAME = &#39;Amaretto&#39; LIMIT 1&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">preparedStatement2</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;UPDATE COFFEES SET PRICE=? WHERE COF_NAME = &#39;Espresso&#39; LIMIT 1&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">preparedStatement1</span><span class="o">.</span><span class="na">setFloat</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mf">5.99f</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">preparedStatement1</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">savepoint2</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="na">setSavepoint</span><span class="o">(</span><span class="s">&quot;point2&quot;</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">preparedStatement2</span><span class="o">.</span><span class="na">setFloat</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mf">7.99f</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">preparedStatement2</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">connection</span><span class="o">.</span><span class="na">rollback</span><span class="o">(</span><span class="n">savepoint2</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">connection</span><span class="o">.</span><span class="na">commit</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">NamingException</span> <span class="o">|</span> <span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">try</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">connection</span><span class="o">.</span><span class="na">rollback</span><span class="o">(</span><span class="n">savepoint1</span><span class="o">);</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>実行前</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">COFFEES</span> <span class="n">WHERE</span> <span class="n">COF_NAME</span> <span class="n">IN</span> <span class="o">(</span><span class="s">&quot;Amaretto&quot;</span><span class="o">,</span> <span class="s">&quot;Espresso&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">COF_NAME</span> <span class="o">|</span> <span class="n">SUP_ID</span> <span class="o">|</span> <span class="n">PRICE</span> <span class="o">|</span> <span class="n">SALES</span> <span class="o">|</span> <span class="n">TOTAL</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Amaretto</span> <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Espresso</span> <span class="o">|</span>    <span class="mi">150</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="mi">2</span> <span class="n">rows</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>実行後</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="n">mysql</span><span class="o">&gt;</span> <span class="n">SELECT</span> <span class="o">*</span> <span class="n">FROM</span> <span class="n">COFFEES</span> <span class="n">WHERE</span> <span class="n">COF_NAME</span> <span class="n">IN</span> <span class="o">(</span><span class="s">&quot;Amaretto&quot;</span><span class="o">,</span> <span class="s">&quot;Espresso&quot;</span><span class="o">);</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">COF_NAME</span> <span class="o">|</span> <span class="n">SUP_ID</span> <span class="o">|</span> <span class="n">PRICE</span> <span class="o">|</span> <span class="n">SALES</span> <span class="o">|</span> <span class="n">TOTAL</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Amaretto</span> <span class="o">|</span>     <span class="mi">49</span> <span class="o">|</span>  <span class="mf">5.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">|</span> <span class="n">Espresso</span> <span class="o">|</span>    <span class="mi">150</span> <span class="o">|</span>  <span class="mf">9.99</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>     <span class="mi">0</span> <span class="o">|</span>
+</span><span class='line'><span class="o">+----------+--------+-------+-------+-------+</span>
+</span><span class='line'><span class="mi">2</span> <span class="n">rows</span> <span class="n">in</span> <span class="n">set</span> <span class="o">(</span><span class="mf">0.00</span> <span class="n">sec</span><span class="o">)</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>1個めのUPDATEだけが適用されました。</p>
+
+<p>Savepointは、大規模なトランザクションでは使いどころがありそうです。</p>
+
+<p>今回のソースはこちらです。</p>
+
+<p><a href="https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter6">https://github.com/chokkoyamada/DigIntoJDBC/tree/chapter6</a></p>
+
+<p>参考：</p>
+
+<p>トランザクション分離レベル &ndash; Wikipedia
+<a href="http://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A9%E3%83%B3%E3%82%B6%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E5%88%86%E9%9B%A2%E3%83%AC%E3%83%99%E3%83%AB">http://ja.wikipedia.org/wiki/%E3%83%88%E3%83%A9%E3%83%B3%E3%82%B6%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3%E5%88%86%E9%9B%A2%E3%83%AC%E3%83%99%E3%83%AB</a></p>
+
+<p>MySQL5 分離レベル　～ transaction_isolation | QuickKnowLedge
+<a href="http://www.s-quad.com/wordpress/?p=956">http://www.s-quad.com/wordpress/?p=956</a></p>
+
+<p><a href="/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1663,6 +1977,10 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-cloudfront/">AWS Summit Tokyo 2014: Amazon CloudFrontを利用したサイト高速化およびセキュア配信</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
       </li>
     
@@ -1676,10 +1994,6 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
     
       <li class="post">
         <a href="/blog/2013/11/18/web-api-hackathon-3-backlog-kanban/">Web Api Hackathon Vol.3 というイベントで「Backlog Kanban」というウェブアプリを作成しました</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/06/21/dell-infra-seminar/">Dell主催「次世代ネットサービス向け クラウド・インフラストラクチャ セミナー」- プライベートクラウドについて考える</a>
       </li>
     
   </ul>
