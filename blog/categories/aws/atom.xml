@@ -4,7 +4,7 @@
   <title><![CDATA[Category: aws | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-18T14:59:53+09:00</updated>
+  <updated>2014-07-18T16:03:09+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,151 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/"/>
+    <updated>2014-07-18T15:10:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive</id>
+    <content type="html"><![CDATA[<p>ソリューションアーキテクトの大谷さんと開発マネージャの堀さんによる、Kinesisの詳説です。
+Kinesisの開発マネージャの方が解説してくれたこともあり、とても意義あるものでした。</p>
+
+<h3>Kinesisの新規ローンチ</h3>
+
+<ul>
+<li>東京リージョンローンチ</li>
+<li>Fluentdプラグイン <a href="https://github.com/awslabs/aws-fluent-plugin-kinesis">https://github.com/awslabs/aws-fluent-plugin-kinesis</a></li>
+<li>MQTTアダプター <a href="https://github.com/awslabs/mqtt-kinesis-bridge">https://github.com/awslabs/mqtt-kinesis-bridge</a></li>
+</ul>
+
+
+<h2>事例紹介</h2>
+
+<ul>
+<li>ガリバー <a href="http://221616.com/gulliver/news/press/20140715-13667.html">http://221616.com/gulliver/news/press/20140715-13667.html</a></li>
+<li>Pencil(リアルタイムユーザーモニター)</li>
+<li>SmartInsight(Beaconとの距離をロギング)</li>
+<li>Supercell</li>
+<li>bizo</li>
+</ul>
+
+
+<h2>Kinesis詳細</h2>
+
+<h3>なぜリアルタイム？</h3>
+
+<ul>
+<li>測定(Metering)サービス　使った分だけ課金されるという特性　オペレーションを測定しないといけない</li>
+<li>毎秒数千万レコード</li>
+<li>毎時数テラバイト</li>
+<li>数十万のデータ・ソース</li>
+<li><p>月末にはオーディターでの100%の正確性</p></li>
+<li><p>毎時数百万のファイル</p></li>
+<li>スケールの課題</li>
+<li>リアルタイムの要望</li>
+<li><p>高い運用コスト</p></li>
+<li><p>要求の変化
+毎時か毎日のデータ処理が従来の要求だったが、リアルタイム、早い意思決定、KeepEverything、エラスティックな拡張性、複数の目的に応じて同じデータを並行処理したい、などの新しい要求が出てきた。</p></li>
+</ul>
+
+
+<h3>Kinesis概要</h3>
+
+<p>用途単位でStreamを作成し、Streamは１つ以上のShardで構成される
+Shardは入力側秒間１MB 1000TPB 出力側2mB, ５TPSのキャパシティ
+入力されたデータは複数のAZに２４時間保存
+Shardの増減でスケール</p>
+
+<h3>データ入力</h3>
+
+<p>HTTPS/POSt
+SDK
+Fluentd
+Flume
+Log4J
+etc</p>
+
+<p>ProducerがPut Recordするサンプル AWS CLIでできる</p>
+
+<p>Shardへの分配ロジック：　md5でハッシュ化して該当のShardに分配される
+パーティションキーを何にするかは重要</p>
+
+<p>パーティションキーの数 > shardの数
+カーディナリティーの高いパーティションキーを使う</p>
+
+<p>シーケンス番号を使って何度でも読むことができる
+何度取得してもシーケンス番号の順番は変わらない:重要</p>
+
+<p>データ取得と処理</p>
+
+<p>API
+Kinesis Client Library/ConnectorLibrary
+Storm
+EMR</p>
+
+<h2>どうやって信頼性と拡張性のあるアプリケーションを作るの？</h2>
+
+<ul>
+<li>Kinesis Client Libraryを提供
+
+<ul>
+<li>Shardと同じ数のWorker</li>
+<li>Workerを均等にロードバランシング</li>
+<li>障害完治と新しいWorkerの立ち上げ</li>
+<li>shardの数に応じてWorkerが動作する</li>
+<li>Autoscaling</li>
+<li>チェックポインティング、At least once処理</li>
+</ul>
+</li>
+</ul>
+
+
+<p>これらの煩雑な処理を意識することなく、ビジネスロジックに集中できる</p>
+
+<h3>重複データについて</h3>
+
+<p>ネットワーク障害や500レベルエラーはリトライをする
+リカバリやロードバランシングでデータが最後のチェックポイントからリプレイされる</p>
+
+<ul>
+<li>ユースケースを理解する
+
+<ul>
+<li>冪等なアプリをつくる</li>
+<li>重複を許容する</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Kinesis Connector Library</h3>
+
+<p>S3, DynamoDB, Redshift
+4つのインタフェースを使うと簡単に書ける</p>
+
+<p>1つのデータをいろいろなシステムで
+プロデューサーの負荷軽減
+データの一貫性を保ちたい</p>
+
+<p>Kinesisに全てのデータを１回入力する
+必要に応じて新しいアプリを追加していく
+Agilityを高める</p>
+
+<h2>Elasticな拡張性</h2>
+
+<ul>
+<li>Streamは１つ以上のキャパシティで構成　Shardでキャパシティプランニング</li>
+<li>SplitShard API Shardを半分に分割</li>
+</ul>
+
+
+<p>shardやEC2もキャパシティがある
+ProvisionedThroughputExceededException</p>
+
+<p>shard１つで14$/month
+Getトランザクションは無料</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営]]></title>
@@ -608,153 +753,6 @@ B2Bサービスなので、1日に少しずつ追加されてもあまり意味�
 <li>並列処理能力が高いから</li>
 <li>ウィンドウ関数など高度な機能が実装されているから</li>
 <li>ある程度オンライン処理にも耐えられるから</li>
-</ul>
-
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014/"/>
-    <updated>2014-07-17T12:20:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2014/07/17/aws-summit-tokyo-2014</id>
-    <content type="html"><![CDATA[<p>AWSソリューションアーキテクトのJiang yifengさんによるEMRを中心とした技術の詳説です。</p>
-
-<p>私はまだEMRをヘビーに使ったことはなくて、AWSサービスの中でいうとRedshiftのほうをよく使っています。
-ただ、EMRのポテンシャルはとても高く、いま最も使っていきたいサービスの一つです。
-他のクラウドサービスに似たサービスが無いことも特徴かと思います。</p>
-
-<p>私が最近EMRに注目しているのは、ずっと起動し続けるサービスではデータが収まりきらなくなってきた、という課題があります。
-私が取り組んでいるプロダクトでは、一日に約2TBのログが生まれています。圧縮しても数百GB。そうすると、RDSやRedshift, ElasticSearchなどの起動しっぱなしのクラスタにデータを格納し続けるのが困難になってきました。運用もきついですし、コスト的にもきついです。</p>
-
-<p>そこで、古いデータを消していくという運用になるのですが、後から古いデータにアクセスしたいケースはやはりあります。
-また、RedshiftでSQL、というだけではこなせないタスクも想定する必要が出てきたため、EMRを検討しています。</p>
-
-<h3>デザインパターン</h3>
-
-<ul>
-<li>一時的なクラスタの活用</li>
-<li>ジョブ実行中のみクラスタが存在</li>
-<li><p>データはS3に永続化される</p></li>
-<li><p>タスクノードの活用</p>
-
-<ul>
-<li>Spotインスタンスを使ってコスト削減</li>
-<li>短時間で大量のリソースを必要とする場合、S3から大量のデータをHDFSのコピーする際に一時的にタスクノードを追加して、HS1インスタンスなどにデータをロードする手法</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>ベストプラクティス</h2>
-
-<ul>
-<li><p>常に現世代のインスタンスタイプを使用</p></li>
-<li><p>ワークロードに最適なノードタイプを選ぶ</p>
-
-<ul>
-<li>HS1 HDFS用途</li>
-<li>I2 and HS1 ディスクIOが多いジョブ</li>
-<li>大きめのノードで構成する小さなクラスタが効率的</li>
-</ul>
-</li>
-<li><p>最適なファイルサイズ</p>
-
-<ul>
-<li>小さいファイル(100MB以下)を下げる</li>
-<li>S3でHadoop利用の場合は1~2GBが最適なファイルサイズ
-
-<ul>
-<li>1mapperからS3のデータ取得速度 10~15mb/s</li>
-<li>Mapper処理は60秒以上であるべき 60sec * 15mb = 1GB</li>
-</ul>
-</li>
-<li>S3DistCpを使ってファイルを結合して最適なサイズに。</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>チューニング</h2>
-
-<ul>
-<li><p>最強のチューニングはデータを効率よく保持すること</p></li>
-<li><p>Hadoopはバッチ向け</p></li>
-<li><p>Hadoop処理時間の目安は1時間〜数日</p></li>
-<li><p>短いジョブは他の技術がフィットするかも</p>
-
-<ul>
-<li>Apache Storm</li>
-<li>Apache Spark</li>
-<li>Redshift</li>
-</ul>
-</li>
-<li><p>チューニングについて</p></li>
-<li><p>ノード追加！！</p></li>
-<li><p>ビジネスの価値を最大化する目的からすると一番早い</p></li>
-<li><p>Gangliaでクラスタをモニタリング</p></li>
-<li><p>EMRなら1クリックインストール</p></li>
-<li><p>例：ネットワークI/O</p>
-
-<ul>
-<li>もっとも重要なメトリック。特にS3を使う場合</li>
-<li>1つのインスタンスからなるべく多くのネットワークI/Oを引き出す: Mapper数追加</li>
-<li>Gangliaでネットワークスループットをチェック例えば200mbpsしか使っていなかったらMapperを追加することで改善する可能性が高い</li>
-</ul>
-</li>
-</ul>
-
-
-<h2>プラットフォームとしてのEMR</h2>
-
-<h3>HBase</h3>
-
-<ul>
-<li><p> 書き込みが激しいものに有効</p></li>
-<li><p>OpenTSDB</p>
-
-<ul>
-<li>HBase上のtime series database</li>
-<li>大規模なモニタリング用</li>
-<li>秒間数百万のデータ書き込み</li>
-</ul>
-</li>
-<li><p>自動／手動でAmazon S3にHBaseをバックアップ</p>
-
-<ul>
-<li>フルバックアップ／増分バックアップ/指定のバージョンに簡単リストア</li>
-</ul>
-</li>
-</ul>
-
-
-<h3>Impala</h3>
-
-<ul>
-<li>SQL on Hadoop</li>
-<li><p>Hiveと互換性が高い: 一部のユースケースにおいてはHiveを置き換えられる</p></li>
-<li><p>ストレージレイヤー　永続クラスタのHDFSまたはHbaseを使う必要がある。現時点ではS3に未対応</p></li>
-</ul>
-
-
-<h3>Presto</h3>
-
-<ul>
-<li>ブートストラップでインストール</li>
-<li>Impalaと違い、S3のデータにダイレクトにアクセス可能なところ</li>
-</ul>
-
-
-<h3>Spark</h3>
-
-<ul>
-<li>非常に光速</li>
-<li>インメモリで処理しきれるならMapReduceより早いケースが多い</li>
-<li>ブートストラップでインストール</li>
-<li>ver0.8をサポート。1.0はcoming soon</li>
-<li>Sparkはメモリを大量に使う。R3系やSpotインスタンスを利用</li>
-<li>CloudWatchでSparkのメトリックスをサポートする JVMの監視が可能</li>
-<li>Spark Streaming + Amazon Kinesisの構成でリアルタイムで分散処理</li>
 </ul>
 
 ]]></content>

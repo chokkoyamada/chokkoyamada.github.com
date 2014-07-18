@@ -9,7 +9,7 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="他所にあるchefのcookbookを気軽にインポートしたい chefのcookbookを依存管理してくれるBerkshelfと、Mac上のVM実行補助のライブラリであるVagrantとの連携を試してみます。 私はAWSでchef-soloを使ったインフラの管理をしているのですが、 &hellip;">
+  <meta name="description" content="Berkshelf+Vagrantで簡単にGraphiteをインストール 昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +77,137 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/05/20/vagrant-berkshelf-graphite-install/">BerkshelfとVagrantの連携(2)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-05-20T22:02:00+09:00" pubdate data-updated="true">May 20<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Berkshelf+Vagrantで簡単にGraphiteをインストール</h2>
+
+<p>昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、Graphiteをchefのcookbookを使ってインストールしてみます。</p>
+
+<ul>
+<li>Graphite</li>
+</ul>
+
+
+<p><a href="http://graphite.wikidot.com">http://graphite.wikidot.com</a></p>
+
+<p><a href="http://graphite.readthedocs.org/en/0.9.10/">http://graphite.readthedocs.org/en/0.9.10/</a></p>
+
+<p>Graphiteはデータのリアルタイム集積・グラフ可視化ツールです。フロントのGUIはDjangoで、そこでデータを集計加工してみたりグラフを描画したりができます。バックエンドはcarbonというデーモンで、ここに向かってネットワーク経由でデータを送信します。・・・というところまでがドキュメントを読んだ限りの概要で、まだ使ったことはありません。とりあえずインストールします。</p>
+
+<h2>GitHub上のcookbookをFork</h2>
+
+<p>ウェブ上にGraphiteをインストールするレシピが無いかと探してみました。Ubuntu向けのものは公式であるのですが、CentOS/Amazon Linuxで使えるものではなかったので、GitHubを探したところ、ありました。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos">https://github.com/taos/graphite-chef-centos</a></p>
+
+<p>しかし、このcookbookのままだとepelのrpmが404になってしまって動作しませんでした。
+そこで自分のところにforkして、修正して使います。</p>
+
+<p><a href="https://github.com/chokkoyamada/graphite-chef-centos">https://github.com/chokkoyamada/graphite-chef-centos</a></p>
+
+<p>修正したのはepelのRPMのURLだけで動きました。</p>
+
+<h2>metadataのバージョン番号がポイント</h2>
+
+<p>Berksfileを次のように書きます。</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>cookbook 'graphite-chef-centos', git: 'git://github.com/chokkoyamada/graphite-chef-centos.git'</span></code></pre></td></tr></table></div></figure>
+
+
+<p>ここではまりどころだったのは、その前にオリジナルの作者であるtaos氏のレポジトリのURLを指定していたのを自分のレポジトリのURLに書き換えたのですが、その後vagrant up/reloadしてもキャッシュが効いていたのか、cookbookがうまく更新できなくて悩みました。</p>
+
+<p>metadataがポイントなんですね。<a href="https://github.com/chokkoyamada/graphite-chef-centos/blob/master/metadata.rb#L5">バージョン番号を更新</a> したら新しいものが入りました。gemと同じ要領ですね。</p>
+
+<p>今回のVagrantfileはこちらです。ローカル(Mac)からウェブを見るためにポートフォワーディングを設定している以外は前回と同じです。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">true</span>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">berksfile_path</span> <span class="o">=</span> <span class="s2">&quot;Berksfile&quot;</span>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;centos63chef&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="ss">:forwarded_port</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">8080</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;/vagrant_data&quot;</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:chef_solo</span> <span class="k">do</span> <span class="o">|</span><span class="n">chef</span><span class="o">|</span>
+</span><span class='line'>    <span class="n">chef</span><span class="o">.</span><span class="n">add_recipe</span> <span class="s2">&quot;graphite-chef-centos&quot;</span>
+</span><span class='line'>  <span class="k">end</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>あとはvagrantを走らせるだけ。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">up</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">ssh</span>
+</span><span class='line'><span class="n">sudo</span> <span class="n">service</span> <span class="n">iptables</span> <span class="n">stop</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>でiptablesを止めてから、[<a href="http://localhost:8080/">http://localhost:8080/</a>] にアクセスします。</p>
+
+<p><img src="/images/2013-05-20-graphite.png"></p>
+
+<p>Graphiteがこんなに簡単にインストールできました! コマンド1個1個打っていくよりはるかに楽です。</p>
+
+<p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
+
+<p>次はGraphiteを使い倒していきます。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -433,6 +564,10 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/">AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</a>
       </li>
     
@@ -446,10 +581,6 @@ HTML以外の他のデータフォーマットへのエクスポートもしや�
     
       <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
       </li>
     
   </ul>

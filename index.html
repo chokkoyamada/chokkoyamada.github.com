@@ -9,8 +9,9 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
-最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。 とことん運用を楽にする側に振り切っているのは清々とします。 Kinesis &ndash; &hellip;">
+  <meta name="description" content="ソリューションアーキテクトの大谷さんと開発マネージャの堀さんによる、Kinesisの詳説です。
+Kinesisの開発マネージャの方が解説してくれたこともあり、とても意義あるものでした。 Kinesisの新規ローンチ 東京リージョンローンチ
+Fluentdプラグイン https://github. &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -78,6 +79,178 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/">AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-18T15:10:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>ソリューションアーキテクトの大谷さんと開発マネージャの堀さんによる、Kinesisの詳説です。
+Kinesisの開発マネージャの方が解説してくれたこともあり、とても意義あるものでした。</p>
+
+<h3>Kinesisの新規ローンチ</h3>
+
+<ul>
+<li>東京リージョンローンチ</li>
+<li>Fluentdプラグイン <a href="https://github.com/awslabs/aws-fluent-plugin-kinesis">https://github.com/awslabs/aws-fluent-plugin-kinesis</a></li>
+<li>MQTTアダプター <a href="https://github.com/awslabs/mqtt-kinesis-bridge">https://github.com/awslabs/mqtt-kinesis-bridge</a></li>
+</ul>
+
+
+<h2>事例紹介</h2>
+
+<ul>
+<li>ガリバー <a href="http://221616.com/gulliver/news/press/20140715-13667.html">http://221616.com/gulliver/news/press/20140715-13667.html</a></li>
+<li>Pencil(リアルタイムユーザーモニター)</li>
+<li>SmartInsight(Beaconとの距離をロギング)</li>
+<li>Supercell</li>
+<li>bizo</li>
+</ul>
+
+
+<h2>Kinesis詳細</h2>
+
+<h3>なぜリアルタイム？</h3>
+
+<ul>
+<li>測定(Metering)サービス　使った分だけ課金されるという特性　オペレーションを測定しないといけない</li>
+<li>毎秒数千万レコード</li>
+<li>毎時数テラバイト</li>
+<li>数十万のデータ・ソース</li>
+<li><p>月末にはオーディターでの100%の正確性</p></li>
+<li><p>毎時数百万のファイル</p></li>
+<li>スケールの課題</li>
+<li>リアルタイムの要望</li>
+<li><p>高い運用コスト</p></li>
+<li><p>要求の変化
+毎時か毎日のデータ処理が従来の要求だったが、リアルタイム、早い意思決定、KeepEverything、エラスティックな拡張性、複数の目的に応じて同じデータを並行処理したい、などの新しい要求が出てきた。</p></li>
+</ul>
+
+
+<h3>Kinesis概要</h3>
+
+<p>用途単位でStreamを作成し、Streamは１つ以上のShardで構成される
+Shardは入力側秒間１MB 1000TPB 出力側2mB, ５TPSのキャパシティ
+入力されたデータは複数のAZに２４時間保存
+Shardの増減でスケール</p>
+
+<h3>データ入力</h3>
+
+<p>HTTPS/POSt
+SDK
+Fluentd
+Flume
+Log4J
+etc</p>
+
+<p>ProducerがPut Recordするサンプル AWS CLIでできる</p>
+
+<p>Shardへの分配ロジック：　md5でハッシュ化して該当のShardに分配される
+パーティションキーを何にするかは重要</p>
+
+<p>パーティションキーの数 > shardの数
+カーディナリティーの高いパーティションキーを使う</p>
+
+<p>シーケンス番号を使って何度でも読むことができる
+何度取得してもシーケンス番号の順番は変わらない:重要</p>
+
+<p>データ取得と処理</p>
+
+<p>API
+Kinesis Client Library/ConnectorLibrary
+Storm
+EMR</p>
+
+<h2>どうやって信頼性と拡張性のあるアプリケーションを作るの？</h2>
+
+<ul>
+<li>Kinesis Client Libraryを提供
+
+<ul>
+<li>Shardと同じ数のWorker</li>
+<li>Workerを均等にロードバランシング</li>
+<li>障害完治と新しいWorkerの立ち上げ</li>
+<li>shardの数に応じてWorkerが動作する</li>
+<li>Autoscaling</li>
+<li>チェックポインティング、At least once処理</li>
+</ul>
+</li>
+</ul>
+
+
+<p>これらの煩雑な処理を意識することなく、ビジネスロジックに集中できる</p>
+
+<h3>重複データについて</h3>
+
+<p>ネットワーク障害や500レベルエラーはリトライをする
+リカバリやロードバランシングでデータが最後のチェックポイントからリプレイされる</p>
+
+<ul>
+<li>ユースケースを理解する
+
+<ul>
+<li>冪等なアプリをつくる</li>
+<li>重複を許容する</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Kinesis Connector Library</h3>
+
+<p>S3, DynamoDB, Redshift
+4つのインタフェースを使うと簡単に書ける</p>
+
+<p>1つのデータをいろいろなシステムで
+プロデューサーの負荷軽減
+データの一貫性を保ちたい</p>
+
+<p>Kinesisに全てのデータを１回入力する
+必要に応じて新しいアプリを追加していく
+Agilityを高める</p>
+
+<h2>Elasticな拡張性</h2>
+
+<ul>
+<li>Streamは１つ以上のキャパシティで構成　Shardでキャパシティプランニング</li>
+<li>SplitShard API Shardを半分に分割</li>
+</ul>
+
+
+<p>shardやEC2もキャパシティがある
+ProvisionedThroughputExceededException</p>
+
+<p>shard１つで14$/month
+Getトランザクションは無料</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1615,76 +1788,6 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let&#8217;s Study Jenkins」- Jenkinsとのさまざまな付き合い方</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-18T20:24:00+09:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。</p>
-
-<p>第6回テックヒルズ本日開催！【Ustream配信決定】<br/>
-Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
-<a href="http://atnd.org/events/39910">http://atnd.org/events/39910</a></p>
-
-<p>参加者700人超という平日の技術勉強会としてはかなりの規模で、この形式でやるのは6回目らしいのですが私は今回が初参加でした。</p>
-
-<p>セッションは2つの部屋に分かれて行われました。私が参加したセッションについて紹介します。</p>
-
-<h2>検索技術基盤開発のための結合テスト環境の自動化(楽天：萩原さん)</h2>
-
-<p>検索基盤の開発にJenkinsを活用して、結合テストを自動化している話。単体テスト・結合テストの前にSmoke Testというフェーズがあり、早期発見可能なバグを検知する仕組みがあるというのが特徴的でした。Smoke Testの中身についてもう少し詳しく聞きたかった。。</p>
-
-<p>結合テストについては15時間のビルドを分割して全て1時間以内に終わるようにして50台のテストサーバーで自動テストを回しているとのこと。それなりに大規模にJenkinsを活用している事例といえますが、ここまで緻密に自動テスト環境を構築するのは楽天内の検索システムのような大規模開発ならではという印象を持ちました。</p>
-
-<h2>CROOZにおけるJenkins活用事例(CROOZ: 鈴木さん)</h2>
-
-<p>コーディング規約に反したコードや除外ファイル(本番にデプロイしたくないファイル)の更新漏れを検知するのに活用しているののこと。自動テストに使うというより、その前段階で開発者へのフィードバックループを作るために活用しているという感じのようです。</p>
-
-<p>そもそもソーシャルゲーム開発におけるテスト事情って最近どうなんでしょうか？　私が2年前にソーシャルゲーム開発をしているころは単体・結合テストを書いているという会社はあまり見かけなかったです。最近だと独自フレームワークが完成の域に達している会社も多いでしょうし、テストをするのは珍しくなくなっているのかもしれません。</p>
-
-<h2>ぼくとJenkinsおじさんとの300日戦争(mixi: 五嶋さん)</h2>
-
-<p>テスト数25万件、実行に45分かかっていたという、膨大なテストを高速化（時間短縮）するための奮闘の記録。</p>
-
-<p>「モジュール読み込み時間を削る」「WriteするまでFixtureで生成したDBをキャッシュして使いまわす」という方法が最初に紹介されましたが、十分な効果が得られず苦労していたという話の後で、結局、最近Jenkinsスレーブ48台が使えるようになって8分でテスト終わるようになりました！という富豪的解決策で対応というオチになって、苦笑してしまいました。確かにリソースは大事ですね。</p>
-
-<h2>アメーバピグとJenkinsと私 (サイバーエージェント: 丸山さん)</h2>
-
-<p>2011年当時のアメーバピグはテストがまともになく、ci環境がないのでとりあえずJenkins導入してみたところ、数千個のFindbugs警告、160個は深刻、でパンドラの箱を開けてしまった＼(^o^)／というところから話が始まりました。そういう状況から2年間かけて徐々にci環境の整備を行なってきたとのこと。</p>
-
-<p>後半では、Jenkinsを使ってバッチ処理をしているというのを興味深く聞きました。cronやSpringBatchではジョブの成否や実行時間の把握が複雑になりがちで、私もバッチ管理の有効な方法を探している途中だったからです。SpringBatchを捨てて自作のシンプルなフレームワークへの置き換え＋Jenkinsでのバッチ管理というのは一つの手法として合理的だと納得しました。</p>
-
-<p>あと今回初めて知りましたが、アメーバピグは本番環境が2系統あって一週間ごとに切り替えて運用しているとのことです。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1700,6 +1803,10 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/">AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</a>
       </li>
     
@@ -1713,10 +1820,6 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
     
       <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
       </li>
     
   </ul>

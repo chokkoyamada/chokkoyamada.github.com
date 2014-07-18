@@ -9,7 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="AWS Summit Tokyo 2013のセッションでもう一つ、メモを取りながら聴講したのはFreakOut社のDSPシステム構築のセッションです。 私も仕事でほぼ同じようなシステムを作っているので、私にとってはFreakOut社は(ド競合ではないまでも)同業者にあたります。 &hellip;">
+  <meta name="description" content="2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。 第6回テックヒルズ本日開催！【Ustream配信決定】
+Let’s &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -77,6 +78,76 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let&#8217;s Study Jenkins」- Jenkinsとのさまざまな付き合い方</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-18T20:24:00+09:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。</p>
+
+<p>第6回テックヒルズ本日開催！【Ustream配信決定】<br/>
+Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
+<a href="http://atnd.org/events/39910">http://atnd.org/events/39910</a></p>
+
+<p>参加者700人超という平日の技術勉強会としてはかなりの規模で、この形式でやるのは6回目らしいのですが私は今回が初参加でした。</p>
+
+<p>セッションは2つの部屋に分かれて行われました。私が参加したセッションについて紹介します。</p>
+
+<h2>検索技術基盤開発のための結合テスト環境の自動化(楽天：萩原さん)</h2>
+
+<p>検索基盤の開発にJenkinsを活用して、結合テストを自動化している話。単体テスト・結合テストの前にSmoke Testというフェーズがあり、早期発見可能なバグを検知する仕組みがあるというのが特徴的でした。Smoke Testの中身についてもう少し詳しく聞きたかった。。</p>
+
+<p>結合テストについては15時間のビルドを分割して全て1時間以内に終わるようにして50台のテストサーバーで自動テストを回しているとのこと。それなりに大規模にJenkinsを活用している事例といえますが、ここまで緻密に自動テスト環境を構築するのは楽天内の検索システムのような大規模開発ならではという印象を持ちました。</p>
+
+<h2>CROOZにおけるJenkins活用事例(CROOZ: 鈴木さん)</h2>
+
+<p>コーディング規約に反したコードや除外ファイル(本番にデプロイしたくないファイル)の更新漏れを検知するのに活用しているののこと。自動テストに使うというより、その前段階で開発者へのフィードバックループを作るために活用しているという感じのようです。</p>
+
+<p>そもそもソーシャルゲーム開発におけるテスト事情って最近どうなんでしょうか？　私が2年前にソーシャルゲーム開発をしているころは単体・結合テストを書いているという会社はあまり見かけなかったです。最近だと独自フレームワークが完成の域に達している会社も多いでしょうし、テストをするのは珍しくなくなっているのかもしれません。</p>
+
+<h2>ぼくとJenkinsおじさんとの300日戦争(mixi: 五嶋さん)</h2>
+
+<p>テスト数25万件、実行に45分かかっていたという、膨大なテストを高速化（時間短縮）するための奮闘の記録。</p>
+
+<p>「モジュール読み込み時間を削る」「WriteするまでFixtureで生成したDBをキャッシュして使いまわす」という方法が最初に紹介されましたが、十分な効果が得られず苦労していたという話の後で、結局、最近Jenkinsスレーブ48台が使えるようになって8分でテスト終わるようになりました！という富豪的解決策で対応というオチになって、苦笑してしまいました。確かにリソースは大事ですね。</p>
+
+<h2>アメーバピグとJenkinsと私 (サイバーエージェント: 丸山さん)</h2>
+
+<p>2011年当時のアメーバピグはテストがまともになく、ci環境がないのでとりあえずJenkins導入してみたところ、数千個のFindbugs警告、160個は深刻、でパンドラの箱を開けてしまった＼(^o^)／というところから話が始まりました。そういう状況から2年間かけて徐々にci環境の整備を行なってきたとのこと。</p>
+
+<p>後半では、Jenkinsを使ってバッチ処理をしているというのを興味深く聞きました。cronやSpringBatchではジョブの成否や実行時間の把握が複雑になりがちで、私もバッチ管理の有効な方法を探している途中だったからです。SpringBatchを捨てて自作のシンプルなフレームワークへの置き換え＋Jenkinsでのバッチ管理というのは一つの手法として合理的だと納得しました。</p>
+
+<p>あと今回初めて知りましたが、アメーバピグは本番環境が2系統あって一週間ごとに切り替えて運用しているとのことです。</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -2224,137 +2295,6 @@ context.xmlの配置について分かったこと． &ndash; 小さな星がほ
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/05/20/vagrant-berkshelf-graphite-install/">BerkshelfとVagrantの連携(2)</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-05-20T22:02:00+09:00" pubdate data-updated="true">May 20<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>Berkshelf+Vagrantで簡単にGraphiteをインストール</h2>
-
-<p>昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、Graphiteをchefのcookbookを使ってインストールしてみます。</p>
-
-<ul>
-<li>Graphite</li>
-</ul>
-
-
-<p><a href="http://graphite.wikidot.com">http://graphite.wikidot.com</a></p>
-
-<p><a href="http://graphite.readthedocs.org/en/0.9.10/">http://graphite.readthedocs.org/en/0.9.10/</a></p>
-
-<p>Graphiteはデータのリアルタイム集積・グラフ可視化ツールです。フロントのGUIはDjangoで、そこでデータを集計加工してみたりグラフを描画したりができます。バックエンドはcarbonというデーモンで、ここに向かってネットワーク経由でデータを送信します。・・・というところまでがドキュメントを読んだ限りの概要で、まだ使ったことはありません。とりあえずインストールします。</p>
-
-<h2>GitHub上のcookbookをFork</h2>
-
-<p>ウェブ上にGraphiteをインストールするレシピが無いかと探してみました。Ubuntu向けのものは公式であるのですが、CentOS/Amazon Linuxで使えるものではなかったので、GitHubを探したところ、ありました。</p>
-
-<p><a href="https://github.com/taos/graphite-chef-centos">https://github.com/taos/graphite-chef-centos</a></p>
-
-<p>しかし、このcookbookのままだとepelのrpmが404になってしまって動作しませんでした。
-そこで自分のところにforkして、修正して使います。</p>
-
-<p><a href="https://github.com/chokkoyamada/graphite-chef-centos">https://github.com/chokkoyamada/graphite-chef-centos</a></p>
-
-<p>修正したのはepelのRPMのURLだけで動きました。</p>
-
-<h2>metadataのバージョン番号がポイント</h2>
-
-<p>Berksfileを次のように書きます。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>cookbook 'graphite-chef-centos', git: 'git://github.com/chokkoyamada/graphite-chef-centos.git'</span></code></pre></td></tr></table></div></figure>
-
-
-<p>ここではまりどころだったのは、その前にオリジナルの作者であるtaos氏のレポジトリのURLを指定していたのを自分のレポジトリのURLに書き換えたのですが、その後vagrant up/reloadしてもキャッシュが効いていたのか、cookbookがうまく更新できなくて悩みました。</p>
-
-<p>metadataがポイントなんですね。<a href="https://github.com/chokkoyamada/graphite-chef-centos/blob/master/metadata.rb#L5">バージョン番号を更新</a> したら新しいものが入りました。gemと同じ要領ですね。</p>
-
-<p>今回のVagrantfileはこちらです。ローカル(Mac)からウェブを見るためにポートフォワーディングを設定している以外は前回と同じです。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">berksfile_path</span> <span class="o">=</span> <span class="s2">&quot;Berksfile&quot;</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;centos63chef&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="ss">:forwarded_port</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">8080</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;/vagrant_data&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:chef_solo</span> <span class="k">do</span> <span class="o">|</span><span class="n">chef</span><span class="o">|</span>
-</span><span class='line'>    <span class="n">chef</span><span class="o">.</span><span class="n">add_recipe</span> <span class="s2">&quot;graphite-chef-centos&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>あとはvagrantを走らせるだけ。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">up</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">ssh</span>
-</span><span class='line'><span class="n">sudo</span> <span class="n">service</span> <span class="n">iptables</span> <span class="n">stop</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>でiptablesを止めてから、[<a href="http://localhost:8080/">http://localhost:8080/</a>] にアクセスします。</p>
-
-<p><img src="/images/2013-05-20-graphite.png"></p>
-
-<p>Graphiteがこんなに簡単にインストールできました! コマンド1個1個打っていくよりはるかに楽です。</p>
-
-<p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
-
-<p>次はGraphiteを使い倒していきます。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/3/">&larr; Older</a>
@@ -2372,6 +2312,10 @@ context.xmlの配置について分かったこと． &ndash; 小さな星がほ
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/">AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive</a>
+      </li>
+    
+      <li class="post">
         <a href="/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</a>
       </li>
     
@@ -2385,10 +2329,6 @@ context.xmlの配置について分かったこと． &ndash; 小さな星がほ
     
       <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014-redshift-realtime-cookpad/">AWS Summit Tokyo 2014: Amazon Redshiftによるリアルタイム分析サービスの構築</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
       </li>
     
   </ul>

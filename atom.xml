@@ -4,7 +4,7 @@
   <title><![CDATA[Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-18T14:59:53+09:00</updated>
+  <updated>2014-07-18T16:03:09+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -12,6 +12,151 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesis Deep Dive]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive/"/>
+    <updated>2014-07-18T15:10:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-kinesis-deep-dive</id>
+    <content type="html"><![CDATA[<p>ソリューションアーキテクトの大谷さんと開発マネージャの堀さんによる、Kinesisの詳説です。
+Kinesisの開発マネージャの方が解説してくれたこともあり、とても意義あるものでした。</p>
+
+<h3>Kinesisの新規ローンチ</h3>
+
+<ul>
+<li>東京リージョンローンチ</li>
+<li>Fluentdプラグイン <a href="https://github.com/awslabs/aws-fluent-plugin-kinesis">https://github.com/awslabs/aws-fluent-plugin-kinesis</a></li>
+<li>MQTTアダプター <a href="https://github.com/awslabs/mqtt-kinesis-bridge">https://github.com/awslabs/mqtt-kinesis-bridge</a></li>
+</ul>
+
+
+<h2>事例紹介</h2>
+
+<ul>
+<li>ガリバー <a href="http://221616.com/gulliver/news/press/20140715-13667.html">http://221616.com/gulliver/news/press/20140715-13667.html</a></li>
+<li>Pencil(リアルタイムユーザーモニター)</li>
+<li>SmartInsight(Beaconとの距離をロギング)</li>
+<li>Supercell</li>
+<li>bizo</li>
+</ul>
+
+
+<h2>Kinesis詳細</h2>
+
+<h3>なぜリアルタイム？</h3>
+
+<ul>
+<li>測定(Metering)サービス　使った分だけ課金されるという特性　オペレーションを測定しないといけない</li>
+<li>毎秒数千万レコード</li>
+<li>毎時数テラバイト</li>
+<li>数十万のデータ・ソース</li>
+<li><p>月末にはオーディターでの100%の正確性</p></li>
+<li><p>毎時数百万のファイル</p></li>
+<li>スケールの課題</li>
+<li>リアルタイムの要望</li>
+<li><p>高い運用コスト</p></li>
+<li><p>要求の変化
+毎時か毎日のデータ処理が従来の要求だったが、リアルタイム、早い意思決定、KeepEverything、エラスティックな拡張性、複数の目的に応じて同じデータを並行処理したい、などの新しい要求が出てきた。</p></li>
+</ul>
+
+
+<h3>Kinesis概要</h3>
+
+<p>用途単位でStreamを作成し、Streamは１つ以上のShardで構成される
+Shardは入力側秒間１MB 1000TPB 出力側2mB, ５TPSのキャパシティ
+入力されたデータは複数のAZに２４時間保存
+Shardの増減でスケール</p>
+
+<h3>データ入力</h3>
+
+<p>HTTPS/POSt
+SDK
+Fluentd
+Flume
+Log4J
+etc</p>
+
+<p>ProducerがPut Recordするサンプル AWS CLIでできる</p>
+
+<p>Shardへの分配ロジック：　md5でハッシュ化して該当のShardに分配される
+パーティションキーを何にするかは重要</p>
+
+<p>パーティションキーの数 > shardの数
+カーディナリティーの高いパーティションキーを使う</p>
+
+<p>シーケンス番号を使って何度でも読むことができる
+何度取得してもシーケンス番号の順番は変わらない:重要</p>
+
+<p>データ取得と処理</p>
+
+<p>API
+Kinesis Client Library/ConnectorLibrary
+Storm
+EMR</p>
+
+<h2>どうやって信頼性と拡張性のあるアプリケーションを作るの？</h2>
+
+<ul>
+<li>Kinesis Client Libraryを提供
+
+<ul>
+<li>Shardと同じ数のWorker</li>
+<li>Workerを均等にロードバランシング</li>
+<li>障害完治と新しいWorkerの立ち上げ</li>
+<li>shardの数に応じてWorkerが動作する</li>
+<li>Autoscaling</li>
+<li>チェックポインティング、At least once処理</li>
+</ul>
+</li>
+</ul>
+
+
+<p>これらの煩雑な処理を意識することなく、ビジネスロジックに集中できる</p>
+
+<h3>重複データについて</h3>
+
+<p>ネットワーク障害や500レベルエラーはリトライをする
+リカバリやロードバランシングでデータが最後のチェックポイントからリプレイされる</p>
+
+<ul>
+<li>ユースケースを理解する
+
+<ul>
+<li>冪等なアプリをつくる</li>
+<li>重複を許容する</li>
+</ul>
+</li>
+</ul>
+
+
+<h3>Kinesis Connector Library</h3>
+
+<p>S3, DynamoDB, Redshift
+4つのインタフェースを使うと簡単に書ける</p>
+
+<p>1つのデータをいろいろなシステムで
+プロデューサーの負荷軽減
+データの一貫性を保ちたい</p>
+
+<p>Kinesisに全てのデータを１回入力する
+必要に応じて新しいアプリを追加していく
+Agilityを高める</p>
+
+<h2>Elasticな拡張性</h2>
+
+<ul>
+<li>Streamは１つ以上のキャパシティで構成　Shardでキャパシティプランニング</li>
+<li>SplitShard API Shardを半分に分割</li>
+</ul>
+
+
+<p>shardやEC2もキャパシティがある
+ProvisionedThroughputExceededException</p>
+
+<p>shard１つで14$/month
+Getトランザクションは無料</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営]]></title>
@@ -3249,110 +3394,6 @@ context.xmlの配置について分かったこと． &ndash; 小さな星がほ
 <p>まずはOracle公式やその他の入門記事に沿って簡単なウェブアプリを作っていきながらひと通りのJDBCの機能を使っていきます。</p>
 
 <p><a href="http://chokkoyamada.github.io/special/jdbc">→最速ウェブアプリのためのJDBC再入門TOPへ</a></p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[BerkshelfとVagrantの連携(2)]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install/"/>
-    <updated>2013-05-20T22:02:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2013/05/20/vagrant-berkshelf-graphite-install</id>
-    <content type="html"><![CDATA[<h2>Berkshelf+Vagrantで簡単にGraphiteをインストール</h2>
-
-<p>昨日はBerkshelfの導入をやりました。とりあえず簡単なレシピがインストールできることは分かったので、今回は実用的なところで、インストールしてみたかったけど一見面倒そうで敬遠していた、Graphiteをchefのcookbookを使ってインストールしてみます。</p>
-
-<ul>
-<li>Graphite</li>
-</ul>
-
-
-<p><a href="http://graphite.wikidot.com">http://graphite.wikidot.com</a></p>
-
-<p><a href="http://graphite.readthedocs.org/en/0.9.10/">http://graphite.readthedocs.org/en/0.9.10/</a></p>
-
-<p>Graphiteはデータのリアルタイム集積・グラフ可視化ツールです。フロントのGUIはDjangoで、そこでデータを集計加工してみたりグラフを描画したりができます。バックエンドはcarbonというデーモンで、ここに向かってネットワーク経由でデータを送信します。・・・というところまでがドキュメントを読んだ限りの概要で、まだ使ったことはありません。とりあえずインストールします。</p>
-
-<h2>GitHub上のcookbookをFork</h2>
-
-<p>ウェブ上にGraphiteをインストールするレシピが無いかと探してみました。Ubuntu向けのものは公式であるのですが、CentOS/Amazon Linuxで使えるものではなかったので、GitHubを探したところ、ありました。</p>
-
-<p><a href="https://github.com/taos/graphite-chef-centos">https://github.com/taos/graphite-chef-centos</a></p>
-
-<p>しかし、このcookbookのままだとepelのrpmが404になってしまって動作しませんでした。
-そこで自分のところにforkして、修正して使います。</p>
-
-<p><a href="https://github.com/chokkoyamada/graphite-chef-centos">https://github.com/chokkoyamada/graphite-chef-centos</a></p>
-
-<p>修正したのはepelのRPMのURLだけで動きました。</p>
-
-<h2>metadataのバージョン番号がポイント</h2>
-
-<p>Berksfileを次のように書きます。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>cookbook 'graphite-chef-centos', git: 'git://github.com/chokkoyamada/graphite-chef-centos.git'</span></code></pre></td></tr></table></div></figure>
-
-
-<p>ここではまりどころだったのは、その前にオリジナルの作者であるtaos氏のレポジトリのURLを指定していたのを自分のレポジトリのURLに書き換えたのですが、その後vagrant up/reloadしてもキャッシュが効いていたのか、cookbookがうまく更新できなくて悩みました。</p>
-
-<p>metadataがポイントなんですね。<a href="https://github.com/chokkoyamada/graphite-chef-centos/blob/master/metadata.rb#L5">バージョン番号を更新</a> したら新しいものが入りました。gemと同じ要領ですね。</p>
-
-<p>今回のVagrantfileはこちらです。ローカル(Mac)からウェブを見るためにポートフォワーディングを設定している以外は前回と同じです。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">berksfile_path</span> <span class="o">=</span> <span class="s2">&quot;Berksfile&quot;</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;centos63chef&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">network</span> <span class="ss">:forwarded_port</span><span class="p">,</span> <span class="ss">guest</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span> <span class="ss">host</span><span class="p">:</span> <span class="mi">8080</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;/vagrant_data&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:chef_solo</span> <span class="k">do</span> <span class="o">|</span><span class="n">chef</span><span class="o">|</span>
-</span><span class='line'>    <span class="n">chef</span><span class="o">.</span><span class="n">add_recipe</span> <span class="s2">&quot;graphite-chef-centos&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>あとはvagrantを走らせるだけ。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">up</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">vagrant</span> <span class="n">ssh</span>
-</span><span class='line'><span class="n">sudo</span> <span class="n">service</span> <span class="n">iptables</span> <span class="n">stop</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>でiptablesを止めてから、[<a href="http://localhost:8080/">http://localhost:8080/</a>] にアクセスします。</p>
-
-<p><img src="http://chokkoyamada.github.io/images/2013-05-20-graphite.png"></p>
-
-<p>Graphiteがこんなに簡単にインストールできました! コマンド1個1個打っていくよりはるかに楽です。</p>
-
-<p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
-
-<p>次はGraphiteを使い倒していきます。</p>
 ]]></content>
   </entry>
   
