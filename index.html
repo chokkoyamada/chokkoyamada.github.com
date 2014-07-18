@@ -9,7 +9,8 @@
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="ソーシャルゲームデベロッパーのGraniの河合さんによるC#のウェブアプリケーションの解説です。 私はWindowsでアプリケーションを書いたことも運用したこともないのですが、かなり昔にMS-DOSでシステム管理は少しやったことがあるので、Microsoftの技術には愛着を持っています。 &hellip;">
+  <meta name="description" content="Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。 とことん運用を楽にする側に振り切っているのは清々とします。 Kinesis &ndash; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -83,7 +84,146 @@
       
   <header>
     
-      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a></h1>
+      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-07-18T14:15:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。</p>
+
+<p>とことん運用を楽にする側に振り切っているのは清々とします。</p>
+
+<p>Kinesis &ndash; ElasticBeansTalk &ndash; S3の組み合わせ方がかなり独特で、二段階に処理を分けるというのはとてもおもしろいと思いました</p>
+
+<ul>
+<li>いかにして最小人数でサーバー側の開発を行うか</li>
+<li><p>以下にしてサーバーコストを下げるか</p></li>
+<li><p>スケール・耐障害の自動化</p></li>
+<li>監視システムも簡単にしたい</li>
+</ul>
+
+
+<p>なので、ElasticBeansTalk + DynamoDBのみで構成することにした</p>
+
+<h2>AWSを使ってみてわかったこと</h2>
+
+<ul>
+<li>すぐ始められる</li>
+<li>アプリをサーバーにデプロイするまでに流れを作るのが簡単</li>
+<li>1から整える必要がない</li>
+<li>思った以上に実用に耐えられる</li>
+<li>ほとんど放置が可能: 最近サーバーをコンソールで調整したくらい</li>
+</ul>
+
+
+<h3>ElasticBeansTalkの注意点</h3>
+
+<ul>
+<li>デプロイ時に一瞬アクセスできないことがある: 気にせずデプロイしている。エラー処理はアプリケーション側で行っている</li>
+<li>オートスケーリングの調整はきっちりしておく</li>
+</ul>
+
+
+<h3>DynamoDBの注意点</h3>
+
+<ul>
+<li>社内にいるDB技術者の文句やいちゃもんに負けない　問題が出たら後付けで</li>
+<li>バッチ処理をしっかり使う、リトライも行う</li>
+<li>スループットの限界値は急激に変化させられない: 急激な書き込みは読み込みはできない</li>
+<li>バックアップするかどうか　リストアする場合ってどんな状況だろうか</li>
+</ul>
+
+
+<h3>汎用化なんて考えたらダメ</h3>
+
+<ul>
+<li>AWSを使い倒さないと真の良さは発揮されない</li>
+<li>そんなにどれでも動く仕組みって重要なんでしょうか。</li>
+</ul>
+
+
+<h2>ログデータの収集・集計</h2>
+
+<ul>
+<li>結局、最初はDynamoDBだけでなんとかした</li>
+</ul>
+
+
+<h2>KinesisとBigData</h2>
+
+<h3>ビッグデータとはなにか</h3>
+
+<p>単体ではよくわからないデータこそがビッグデータ</p>
+
+<p>達成課題：毎秒10万件のデータを収集する</p>
+
+<p>Linux
+TCP
+28000個ぐらいのポート
+TIMEWAIT 60sec
+実測値への縫製係数: 0.6
+1server 282 req/sec</p>
+
+<p>チューニング後：</p>
+
+<p>Linux
+TCP
+64000 Port
+TIMEWAIT 10sec
+1server 4000req/sec</p>
+
+<p>26台あれば　 3870x26=100620req/sec</p>
+
+<p>ただ、これをどうやって集める？ 一般的なサーバーでつくろうとするとdisaster recovery含めて大変</p>
+
+<p>Kinesisならシャードを100個立てれば終了</p>
+
+<p>Grasslandというツールを開発中: データを分析して</p>
+
+<h2>GrasslandでのKinesisの使いどころ</h2>
+
+<p>1 クライアントからはKinesisにデータを直接投げる
+2 ElasticBeansTalkはS3にキャシュを保存
+3 S3はcacheの解析リクエストをKinesisに返す
+4 Kinesis &ndash;> EBT に解析リクエストを投げる
+5 S3 &ndash;> EBT はキャッシュを返す
+6 EBT &ndash;> S3 解析結果を渡す</p>
+
+<p>セキュリティを担保できる工夫はいろいろできる</p>
+
+<p>Kinesisは世界のデータを集めるように作られている</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a></h1>
     
     
       <p class="meta">
@@ -1444,6 +1584,42 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
       
   <header>
     
+      <h1 class="entry-title"><a href="/blog/2013/06/21/fabric-reverse-dictionary-1/">逆引きFabric(1)</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2013-06-21T08:33:00+09:00" pubdate data-updated="true">Jun 21<span>st</span>, 2013</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>環境を整える</h2>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/blog/2013/06/18/techhills6th-jenkins/">第6回テックヒルズ「Let&#8217;s Study Jenkins」- Jenkinsとのさまざまな付き合い方</a></h1>
     
     
@@ -1509,330 +1685,6 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/06/aws-summit-2013-freakout/">AWS Summit Tokyo 2013(2) FreakOut - 50ms or Dieの世界</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-06T15:19:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>AWS Summit Tokyo 2013のセッションでもう一つ、メモを取りながら聴講したのはFreakOut社のDSPシステム構築のセッションです。</p>
-
-<p><a href="http://www.slideshare.net/Satully/jaws2013lt-1000qps">私も仕事でほぼ同じようなシステムを作っているので</a>、私にとってはFreakOut社は(ド競合ではないまでも)同業者にあたります。そういう意味で最も注目していたセッションでした。</p>
-
-<p><a href="http://www.awssummittokyo.com/session.html#DM-07">クラウドで RTB　～50ms or die. を支えるFreakOut の AWS 活用～</a></p>
-
-<p>彼らがよく使っている「50ms or die」という言葉はとてもキャッチーだと思っていて、好きです。</p>
-
-<p>これはRTBでbid requestに対して50ミリ秒以内にレスポンスを返し続けなければいけないというルールを端的に言い表したフレーズです。</p>
-
-<p>実際にはこれにネットワークレイテンシの考慮を加えて合計で100ミリ秒が目安であったり、SSP毎にレギュレーションが違ったりと、50ミリ秒という数字が全てではないのですが、レスポンスタイムのしきい値という意味ではとても現実的な数字だと思います。</p>
-
-<p>実際には20~30ミリ秒くらいでレスポンスを返すシステムを想定して作っていくべきだと思っていて、私も実際そのへんをターゲットに置いています。</p>
-
-<pre><code>クラウドでRTB
-
-FreakOUt
-
-2010/10創業
-
-4billion+imp
-60+staff
-
-## FreakOutとRTB
-
-FreakOutは広告主のネット広告におけるROI最適化を目的としたDSPを展開
-
-このページのオーディエンスはどんな人
-興味関心
-生活主観
-過去の行動
-
-RTBによって広告主の都合で買い付け可能に
-
-960億/月のRTBreqを受けている　
-
-## FreakoutとAWS
-
-100msecで広告を表示する
-100msecでSSPがリクエストを投げ、DSPがレスポンスを返しきるまで
-TCPのRTTを含んでいる
-SSPは複数あり、多くの同時多発的リクエストが発生する
-
-### 課題
-
-レイテンシの軽減
-多数のRTB処理
-落札後の画像&amp;Flash配信
-
-RTBはCPUバウンド
-
-自作PCを使っている 数百台規模で使っている　
-多コアを安く並べる
-
-その一方でコンテンツ配信には広い帯域が必要
-
-S3+CloudFrontを使用
-コストパフォーマンスが良い
-
-オンプレミス＋クラウドで費用対効果を追求
-すべてをクラウドに任せるのではなく、徹底して費用対効果を勘案したうえで技術選択を行っている
-
-## 海外での展開とAWS
-
-レイテンシ
-singapore 80msec
-us-west 110msec
-us-east 160msec
-
-海外でも物理的に近い必要がある
-
-VPCとVPC connsを使って拡張
-
-EC2 専用のAMIを作成して活用
-ELB LVSの代わりとして活用
-Elasticache 当時VPCで使用不能だった
-RDS　Slaveでバッチを稼働させるため不使用　
-ELB以外はEC2で構築
-
-構築初期　
-c1.xlarge
-app
-m2.2xlarge
-kvs
-m1.medium
-other
-
-ログ処理関連
-S3 海外でputして日本でget
-オンプレミスのhadoopへ
-
-まとめ
-自分たちの都合で必要なことを判断して使う
-AWSはいい意味でドライなので線引きをエンジニア自身で考える
-AWS以上に都合のよいクラウドはいまのところない
-
-## 改善点・課題
-
-CloudFront Reserved Capacity
-10tboverなら配信料ダウン
-Region単位契約なので注意
-
-HTML/JS
-cookieをさわりたいので、ドメイン指定する必要がある
-カスタムオリジンをhttps対応してくれると助かる
-
-cc2.8xlargeによるインスタンス集約
-c1.xlarge x 4以上
-
-Elasticacheを今後使っていきたい
-
-EC2はインスタンスを増やすのが簡単だが増やしすぎると運用負担増
-1台あたりのパフォーマンス改善が重要　
-
-## おわりに
-
-* FreakOutは必要な技術を都度精査して選択する
-* 結果責任は技術選択をする事業者自身にある
-* AWSは有力な選択肢として魅力をもっていると考えており、今この瞬間もAWSを利用して広告を配信している
-</code></pre>
-
-<p>あまり新しい情報は無かったのですが、cc2.8xlargeインスタンスの使用を検討しているというのは興味深かったです。価格的にはc1.xlargeの4倍程度なのですが、じっさいには4倍以上のCPU能力はありそうだし、ネットワークは1Gbpsから10Gbpsになるのでネットワークも安定しそうだしということで、効果がありそうだからです。実際検証してみたいと思います。</p>
-
-<p>クラウドでは安価で冗長性の高いインスタンスを並列させてスケールアウトしていくというのがこれまでは半ばポリシーでしたが、最近はそうでもないと思い始めています。</p>
-
-<p>作るシステムにもよりますが、単体マシンの性能もどんどん向上している以上、その範囲内でもっとも効率よく処理できるのであれば1台になるべく詰め込んだほうがリソースは効率的に使えるし管理も楽だし価格も安くなる計算だからです。</p>
-
-<p>あとは物理サーバーとの比較ですね。FreakOutは国内のbidサーバーについては自作のマシンを使っていると言っていて写真もありましたが、実際あればクラウド、例えばc1.xlargeと比べてどの程度コストメリットがあるのかどうか。</p>
-
-<p>また、FreakOutはPerlをメイン言語としていると聞いているので、Perlでどう作っているかというのは大変気になりました。</p>
-</div>
-  
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2013/06/06/aws-summit-2013/">AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2013-06-06T13:25:00+09:00" pubdate data-updated="true">Jun 6<span>th</span>, 2013</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>AWS Summit Tokyo 2013の中から2セッション、まとめておきたいと思います。1つめはRedshiftに関するセッションです。</p>
-
-<p>セッション紹介 ｜ AWS Summit Tokyo 2013  <br/>
-<a href="http://www.awssummittokyo.com/session.html#Tech-05">「Amazon Redshiftが切り開くクラウド・データウェアハウス」</a></p>
-
-<p>私の勤務する<a href="http://aws.amazon.com/jp/about-aws/whats-new/2013/6/5/Amazon-Redshift-and-High-Storage-Instance-in-Tokyo-Region/">AMoAdでは、RedShiftがUS-Eastリージョンで使えるようになって以来注目していて、実際に本番環境で使ってきました。</a> 私は中心的にRedshiftをじっくり使ってきたわけではないのですが、運用担当として興味深く聴講しました。</p>
-
-<h2>Redshiftの概要</h2>
-
-<pre><code>エンタープライズシステムにおける活用ノウハウ
-
-Amazon Redshiftの取り組みについて
-
-クラウド型データウェアハウス
-オンプレ環境におけるデータウェアハウスの課題
-・初期投資
-・運用管理
-・成長予測・費用対効果
-
-install backupなどのルーチンワークをAWSに任せて、codingとperformance tuningに割く時間を増やせる
-
-RDS, DynamoDBなどのオンライントランザクション→ EMR, S3→Redshift
-
-カラムナ型データベース
-列が多いケースにはパフォーマンスの向上が見られやすい
-
-* Leader Node クエリのパース・分析をしてC++コードを生成してcompute nodeに投げる
-
-* compute nodes ここを増やすことで器を大きくできる
-
-    1.6PBまで拡張可能
-
-JDBCのPostgreSQLドライバを使える
-
-AmazonS3かDynamoDBからの並列ロード
-
-S3への自動バックアップ・増分バックアップ・オンデマンドのバックアップ　
-リサイズする場合：新しいクラスタをバックグラウンドでプロビジョニング
-ノード数×時間単価の課金　
-
-日本ではデータウェアハウスとOLTPの中間的な使い方をしている場合が多い　
-</code></pre>
-
-<p>まずはRedshiftの概要の説明です。Redshiftはすでに基本的なところは調べて実際に使ってきたのでほとんどが既知の事項でした。</p>
-
-<p>エンタープライズ向けを主に意識しているセッションだけあって聞き慣れない単語がいくつかありましたが・・・そもそもRedshiftは個人で気軽に試すには若干値が張る（最小構成でも1ノードを1ヶ月フルで使うと$0.85 x 24hour x 30dayで6万円程度）</p>
-
-<pre><code>## Redshiftの性能は？
-
-他と比較するとSEの寿命が縮まるので・・・
-
-### 巨大テーブルからの検索処理
-
-1.5TBくらいのデータの検索結果  500億件
-8XL 2node 43.5sec
-8XL 4node 27.8sec
-8XL 8node 19.8sec
-
-線形に性能が向上しているのに驚いた
-
-### データロードのスピード 500億件
-
-8XL 2node 2:54sec
-8XL 4node 1:37
-8XL 8node 0:46
-
-### 1.2億件の検索結果
-
-8XL 2node 3.30 sec
-8XL 4node 1.40 sec
-8XL 8node 1.80 sec
-
-## バッチ処理は？
-
-EMRとの比較
-1.5TB, 500億件
-
-EMR 29min
-Redshift 17min
-
-EMR 71min
-Redshift 5min
-
-チューニングのポイント
-キー(index)
-
-distribution keyに応じてスライスに配置される
-sort keyをもとにレコードがソートされる
-
-### チューニング効果
-* 1.2億件
-
-指定無しは1.8秒
-指定ありは1秒
-
-* バッチ処理
-
-指定あり：24min
-指定無し：16min
-
-sort keyを入れるとロードは遅くなるので注意
-
-### コスト:w
-128coe 960gb 128tb storage
-構築費はほぼ不要、維持管理のSEも不要、センター費用は不要
-
-### 注意点は？
-不得意なデータ形式もある
-EMRで前処理
-
-簡単につくれてしまうため、統制のきいていないシステムの乱立に注意
-
-### まとめ
-
-* 性能は線形にスケール
-* バッチ処理も得意
-* チューニングは新しい概念で
-* 利用料課金はメリット大
-* 注意点もある
-</code></pre>
-
-<p>次は野村総研の方からの検証結果報告です。データのSELECTが早いのは確かだと思います。ただ、セッションでも言及されているように、「不得意なデータ形式もある」ということで、結局のところRedshiftのポテンシャルをフルに引き出して使いこなすには、時間とともに溜まるノウハウの蓄積が欠かせない気がします。</p>
-
-<p>データのロードについても同様で、<a href="http://www.hapyrus.com/products/flydata-for-redshift">FlyData for Amazon Redshift</a>というサービスがあるくらい、Redshiftに適切な速度で要領よくデータをアップロードするのは難しいという印象です。このへんも各所で検証が進むにつれて、うまいやり方というのが見いだされてくるのかなと思います。</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/blog/page/2/">&larr; Older</a>
@@ -1848,7 +1700,11 @@ EMRで前処理
   <ul id="recent_posts">
     
       <li class="post">
-        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a>
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/">AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a>
       </li>
     
       <li class="post">
@@ -1861,10 +1717,6 @@ EMRで前処理
     
       <li class="post">
         <a href="/blog/2014/07/17/aws-summit-tokyo-2014/">AWS Summit Tokyo 2014: AWSビッグデータサービス Deep Dive</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2013/11/18/ubuntu-linux-tutorial-for-centos-user/">CentOSユーザーのためのUbuntu Linux入門(1)</a>
       </li>
     
   </ul>

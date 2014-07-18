@@ -5,12 +5,12 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方 - Continuous Ops</title>
+  <title>AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営 - Continuous Ops</title>
   <meta name="author" content="Naoyuki Yamada">
 
   
-  <meta name="description" content="2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。 第6回テックヒルズ本日開催！【Ustream配信決定】
-Let’s &hellip;">
+  <meta name="description" content="Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。 とことん運用を楽にする側に振り切っているのは清々とします。 Kinesis &ndash; &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +19,7 @@ Let’s &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2013/06/18/techhills6th-jenkins">
+  <link rel="canonical" href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis">
   <link href="/favicon.png" rel="icon">
   <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <link href="/atom.xml" rel="alternate" title="Continuous Ops" type="application/atom+xml">
@@ -81,7 +81,7 @@ Let’s &hellip;">
   
   <header>
     
-      <h1 class="entry-title">第6回テックヒルズ「Let's Study Jenkins」- Jenkinsとのさまざまな付き合い方</h1>
+      <h1 class="entry-title">AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営</h1>
     
     
       <p class="meta">
@@ -97,48 +97,117 @@ Let’s &hellip;">
   
 
 
-<time datetime="2013-06-18T20:24:00+09:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
+<time datetime="2014-07-18T14:15:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
         
       </p>
     
   </header>
 
 
-<div class="entry-content"><p>2013/06/18 19:00~22:00に六本木ヒルズ(アカデミーヒルズ)で「第6回テックヒルズ Let&rsquo;s Study Jenkins ~さまざまなケーススタディ~」というイベントが行われたので行ってきました。</p>
+<div class="entry-content"><p>Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。</p>
 
-<p>第6回テックヒルズ本日開催！【Ustream配信決定】<br/>
-Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
-<a href="http://atnd.org/events/39910">http://atnd.org/events/39910</a></p>
+<p>とことん運用を楽にする側に振り切っているのは清々とします。</p>
 
-<p>参加者700人超という平日の技術勉強会としてはかなりの規模で、この形式でやるのは6回目らしいのですが私は今回が初参加でした。</p>
+<p>Kinesis &ndash; ElasticBeansTalk &ndash; S3の組み合わせ方がかなり独特で、二段階に処理を分けるというのはとてもおもしろいと思いました</p>
 
-<p>セッションは2つの部屋に分かれて行われました。私が参加したセッションについて紹介します。</p>
+<ul>
+<li>いかにして最小人数でサーバー側の開発を行うか</li>
+<li><p>以下にしてサーバーコストを下げるか</p></li>
+<li><p>スケール・耐障害の自動化</p></li>
+<li>監視システムも簡単にしたい</li>
+</ul>
 
-<h2>検索技術基盤開発のための結合テスト環境の自動化(楽天：萩原さん)</h2>
 
-<p>検索基盤の開発にJenkinsを活用して、結合テストを自動化している話。単体テスト・結合テストの前にSmoke Testというフェーズがあり、早期発見可能なバグを検知する仕組みがあるというのが特徴的でした。Smoke Testの中身についてもう少し詳しく聞きたかった。。</p>
+<p>なので、ElasticBeansTalk + DynamoDBのみで構成することにした</p>
 
-<p>結合テストについては15時間のビルドを分割して全て1時間以内に終わるようにして50台のテストサーバーで自動テストを回しているとのこと。それなりに大規模にJenkinsを活用している事例といえますが、ここまで緻密に自動テスト環境を構築するのは楽天内の検索システムのような大規模開発ならではという印象を持ちました。</p>
+<h2>AWSを使ってみてわかったこと</h2>
 
-<h2>CROOZにおけるJenkins活用事例(CROOZ: 鈴木さん)</h2>
+<ul>
+<li>すぐ始められる</li>
+<li>アプリをサーバーにデプロイするまでに流れを作るのが簡単</li>
+<li>1から整える必要がない</li>
+<li>思った以上に実用に耐えられる</li>
+<li>ほとんど放置が可能: 最近サーバーをコンソールで調整したくらい</li>
+</ul>
 
-<p>コーディング規約に反したコードや除外ファイル(本番にデプロイしたくないファイル)の更新漏れを検知するのに活用しているののこと。自動テストに使うというより、その前段階で開発者へのフィードバックループを作るために活用しているという感じのようです。</p>
 
-<p>そもそもソーシャルゲーム開発におけるテスト事情って最近どうなんでしょうか？　私が2年前にソーシャルゲーム開発をしているころは単体・結合テストを書いているという会社はあまり見かけなかったです。最近だと独自フレームワークが完成の域に達している会社も多いでしょうし、テストをするのは珍しくなくなっているのかもしれません。</p>
+<h3>ElasticBeansTalkの注意点</h3>
 
-<h2>ぼくとJenkinsおじさんとの300日戦争(mixi: 五嶋さん)</h2>
+<ul>
+<li>デプロイ時に一瞬アクセスできないことがある: 気にせずデプロイしている。エラー処理はアプリケーション側で行っている</li>
+<li>オートスケーリングの調整はきっちりしておく</li>
+</ul>
 
-<p>テスト数25万件、実行に45分かかっていたという、膨大なテストを高速化（時間短縮）するための奮闘の記録。</p>
 
-<p>「モジュール読み込み時間を削る」「WriteするまでFixtureで生成したDBをキャッシュして使いまわす」という方法が最初に紹介されましたが、十分な効果が得られず苦労していたという話の後で、結局、最近Jenkinsスレーブ48台が使えるようになって8分でテスト終わるようになりました！という富豪的解決策で対応というオチになって、苦笑してしまいました。確かにリソースは大事ですね。</p>
+<h3>DynamoDBの注意点</h3>
 
-<h2>アメーバピグとJenkinsと私 (サイバーエージェント: 丸山さん)</h2>
+<ul>
+<li>社内にいるDB技術者の文句やいちゃもんに負けない　問題が出たら後付けで</li>
+<li>バッチ処理をしっかり使う、リトライも行う</li>
+<li>スループットの限界値は急激に変化させられない: 急激な書き込みは読み込みはできない</li>
+<li>バックアップするかどうか　リストアする場合ってどんな状況だろうか</li>
+</ul>
 
-<p>2011年当時のアメーバピグはテストがまともになく、ci環境がないのでとりあえずJenkins導入してみたところ、数千個のFindbugs警告、160個は深刻、でパンドラの箱を開けてしまった＼(^o^)／というところから話が始まりました。そういう状況から2年間かけて徐々にci環境の整備を行なってきたとのこと。</p>
 
-<p>後半では、Jenkinsを使ってバッチ処理をしているというのを興味深く聞きました。cronやSpringBatchではジョブの成否や実行時間の把握が複雑になりがちで、私もバッチ管理の有効な方法を探している途中だったからです。SpringBatchを捨てて自作のシンプルなフレームワークへの置き換え＋Jenkinsでのバッチ管理というのは一つの手法として合理的だと納得しました。</p>
+<h3>汎用化なんて考えたらダメ</h3>
 
-<p>あと今回初めて知りましたが、アメーバピグは本番環境が2系統あって一週間ごとに切り替えて運用しているとのことです。</p>
+<ul>
+<li>AWSを使い倒さないと真の良さは発揮されない</li>
+<li>そんなにどれでも動く仕組みって重要なんでしょうか。</li>
+</ul>
+
+
+<h2>ログデータの収集・集計</h2>
+
+<ul>
+<li>結局、最初はDynamoDBだけでなんとかした</li>
+</ul>
+
+
+<h2>KinesisとBigData</h2>
+
+<h3>ビッグデータとはなにか</h3>
+
+<p>単体ではよくわからないデータこそがビッグデータ</p>
+
+<p>達成課題：毎秒10万件のデータを収集する</p>
+
+<p>Linux
+TCP
+28000個ぐらいのポート
+TIMEWAIT 60sec
+実測値への縫製係数: 0.6
+1server 282 req/sec</p>
+
+<p>チューニング後：</p>
+
+<p>Linux
+TCP
+64000 Port
+TIMEWAIT 10sec
+1server 4000req/sec</p>
+
+<p>26台あれば　 3870x26=100620req/sec</p>
+
+<p>ただ、これをどうやって集める？ 一般的なサーバーでつくろうとするとdisaster recovery含めて大変</p>
+
+<p>Kinesisならシャードを100個立てれば終了</p>
+
+<p>Grasslandというツールを開発中: データを分析して</p>
+
+<h2>GrasslandでのKinesisの使いどころ</h2>
+
+<p>1 クライアントからはKinesisにデータを直接投げる
+2 ElasticBeansTalkはS3にキャシュを保存
+3 S3はcacheの解析リクエストをKinesisに返す
+4 Kinesis &ndash;> EBT に解析リクエストを投げる
+5 S3 &ndash;> EBT はキャッシュを返す
+6 EBT &ndash;> S3 解析結果を渡す</p>
+
+<p>セキュリティを担保できる工夫はいろいろできる</p>
+
+<p>Kinesisは世界のデータを集めるように作られている</p>
 </div>
 
 
@@ -161,12 +230,12 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
   
 
 
-<time datetime="2013-06-18T20:24:00+09:00" pubdate data-updated="true">Jun 18<span>th</span>, 2013</time>
+<time datetime="2014-07-18T14:15:00+09:00" pubdate data-updated="true">Jul 18<span>th</span>, 2014</time>
       
 
 <span class="categories">
   
-    <a class='category' href='/blog/categories/event/'>event</a>, <a class='category' href='/blog/categories/jenkins/'>jenkins</a>
+    <a class='category' href='/blog/categories/aws/'>aws</a>
   
 </span>
 
@@ -175,7 +244,7 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2013/06/18/techhills6th-jenkins/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2013/06/18/techhills6th-jenkins/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/" data-via="satully" data-counturl="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/" >Tweet</a>
   
   
   
@@ -186,10 +255,8 @@ Let’s study Jenkins ～さまざまなケーススタディ～ : ATND<br/>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/blog/2013/06/06/aws-summit-2013-freakout/" title="Previous Post: AWS Summit Tokyo 2013(2) FreakOut - 50ms or dieの世界">&laquo; AWS Summit Tokyo 2013(2) FreakOut - 50ms or dieの世界</a>
+        <a class="basic-alignment left" href="/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/" title="Previous Post: AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践">&laquo; AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践</a>
       
-      
-        <a class="basic-alignment right" href="/blog/2013/06/21/fabric-reverse-dictionary-1/" title="Next Post: 逆引きFabric(1)">逆引きFabric(1) &raquo;</a>
       
     </p>
   </footer>

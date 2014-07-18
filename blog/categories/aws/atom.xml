@@ -4,7 +4,7 @@
   <title><![CDATA[Category: aws | Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/blog/categories/aws/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-18T14:12:25+09:00</updated>
+  <updated>2014-07-18T14:59:53+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -14,7 +14,119 @@
 
   
   <entry>
-    <title type="html"><![CDATA[AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践]]></title>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/"/>
+    <updated>2014-07-18T14:15:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis</id>
+    <content type="html"><![CDATA[<p>Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。</p>
+
+<p>とことん運用を楽にする側に振り切っているのは清々とします。</p>
+
+<p>Kinesis &ndash; ElasticBeansTalk &ndash; S3の組み合わせ方がかなり独特で、二段階に処理を分けるというのはとてもおもしろいと思いました</p>
+
+<ul>
+<li>いかにして最小人数でサーバー側の開発を行うか</li>
+<li><p>以下にしてサーバーコストを下げるか</p></li>
+<li><p>スケール・耐障害の自動化</p></li>
+<li>監視システムも簡単にしたい</li>
+</ul>
+
+
+<p>なので、ElasticBeansTalk + DynamoDBのみで構成することにした</p>
+
+<h2>AWSを使ってみてわかったこと</h2>
+
+<ul>
+<li>すぐ始められる</li>
+<li>アプリをサーバーにデプロイするまでに流れを作るのが簡単</li>
+<li>1から整える必要がない</li>
+<li>思った以上に実用に耐えられる</li>
+<li>ほとんど放置が可能: 最近サーバーをコンソールで調整したくらい</li>
+</ul>
+
+
+<h3>ElasticBeansTalkの注意点</h3>
+
+<ul>
+<li>デプロイ時に一瞬アクセスできないことがある: 気にせずデプロイしている。エラー処理はアプリケーション側で行っている</li>
+<li>オートスケーリングの調整はきっちりしておく</li>
+</ul>
+
+
+<h3>DynamoDBの注意点</h3>
+
+<ul>
+<li>社内にいるDB技術者の文句やいちゃもんに負けない　問題が出たら後付けで</li>
+<li>バッチ処理をしっかり使う、リトライも行う</li>
+<li>スループットの限界値は急激に変化させられない: 急激な書き込みは読み込みはできない</li>
+<li>バックアップするかどうか　リストアする場合ってどんな状況だろうか</li>
+</ul>
+
+
+<h3>汎用化なんて考えたらダメ</h3>
+
+<ul>
+<li>AWSを使い倒さないと真の良さは発揮されない</li>
+<li>そんなにどれでも動く仕組みって重要なんでしょうか。</li>
+</ul>
+
+
+<h2>ログデータの収集・集計</h2>
+
+<ul>
+<li>結局、最初はDynamoDBだけでなんとかした</li>
+</ul>
+
+
+<h2>KinesisとBigData</h2>
+
+<h3>ビッグデータとはなにか</h3>
+
+<p>単体ではよくわからないデータこそがビッグデータ</p>
+
+<p>達成課題：毎秒10万件のデータを収集する</p>
+
+<p>Linux
+TCP
+28000個ぐらいのポート
+TIMEWAIT 60sec
+実測値への縫製係数: 0.6
+1server 282 req/sec</p>
+
+<p>チューニング後：</p>
+
+<p>Linux
+TCP
+64000 Port
+TIMEWAIT 10sec
+1server 4000req/sec</p>
+
+<p>26台あれば　 3870x26=100620req/sec</p>
+
+<p>ただ、これをどうやって集める？ 一般的なサーバーでつくろうとするとdisaster recovery含めて大変</p>
+
+<p>Kinesisならシャードを100個立てれば終了</p>
+
+<p>Grasslandというツールを開発中: データを分析して</p>
+
+<h2>GrasslandでのKinesisの使いどころ</h2>
+
+<p>1 クライアントからはKinesisにデータを直接投げる
+2 ElasticBeansTalkはS3にキャシュを保存
+3 S3はcacheの解析リクエストをKinesisに返す
+4 Kinesis &ndash;> EBT に解析リクエストを投げる
+5 S3 &ndash;> EBT はキャッシュを返す
+6 EBT &ndash;> S3 解析結果を渡す</p>
+
+<p>セキュリティを担保できる工夫はいろいろできる</p>
+
+<p>Kinesisは世界のデータを集めるように作られている</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践]]></title>
     <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/"/>
     <updated>2014-07-18T13:19:00+09:00</updated>
     <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows</id>
@@ -645,138 +757,6 @@ B2Bサービスなので、1日に少しずつ追加されてもあまり意味�
 <li>Spark Streaming + Amazon Kinesisの構成でリアルタイムで分散処理</li>
 </ul>
 
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[AWS Summit Tokyo 2013(1) Redshiftのパフォーマンスと使いどころ]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013/"/>
-    <updated>2013-06-06T13:25:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2013/06/06/aws-summit-2013</id>
-    <content type="html"><![CDATA[<p>AWS Summit Tokyo 2013の中から2セッション、まとめておきたいと思います。1つめはRedshiftに関するセッションです。</p>
-
-<p>セッション紹介 ｜ AWS Summit Tokyo 2013  <br/>
-<a href="http://www.awssummittokyo.com/session.html#Tech-05">「Amazon Redshiftが切り開くクラウド・データウェアハウス」</a></p>
-
-<p>私の勤務する<a href="http://aws.amazon.com/jp/about-aws/whats-new/2013/6/5/Amazon-Redshift-and-High-Storage-Instance-in-Tokyo-Region/">AMoAdでは、RedShiftがUS-Eastリージョンで使えるようになって以来注目していて、実際に本番環境で使ってきました。</a> 私は中心的にRedshiftをじっくり使ってきたわけではないのですが、運用担当として興味深く聴講しました。</p>
-
-<h2>Redshiftの概要</h2>
-
-<pre><code>エンタープライズシステムにおける活用ノウハウ
-
-Amazon Redshiftの取り組みについて
-
-クラウド型データウェアハウス
-オンプレ環境におけるデータウェアハウスの課題
-・初期投資
-・運用管理
-・成長予測・費用対効果
-
-install backupなどのルーチンワークをAWSに任せて、codingとperformance tuningに割く時間を増やせる
-
-RDS, DynamoDBなどのオンライントランザクション→ EMR, S3→Redshift
-
-カラムナ型データベース
-列が多いケースにはパフォーマンスの向上が見られやすい
-
-* Leader Node クエリのパース・分析をしてC++コードを生成してcompute nodeに投げる
-
-* compute nodes ここを増やすことで器を大きくできる
-
-    1.6PBまで拡張可能
-
-JDBCのPostgreSQLドライバを使える
-
-AmazonS3かDynamoDBからの並列ロード
-
-S3への自動バックアップ・増分バックアップ・オンデマンドのバックアップ　
-リサイズする場合：新しいクラスタをバックグラウンドでプロビジョニング
-ノード数×時間単価の課金　
-
-日本ではデータウェアハウスとOLTPの中間的な使い方をしている場合が多い　
-</code></pre>
-
-<p>まずはRedshiftの概要の説明です。Redshiftはすでに基本的なところは調べて実際に使ってきたのでほとんどが既知の事項でした。</p>
-
-<p>エンタープライズ向けを主に意識しているセッションだけあって聞き慣れない単語がいくつかありましたが・・・そもそもRedshiftは個人で気軽に試すには若干値が張る（最小構成でも1ノードを1ヶ月フルで使うと$0.85 x 24hour x 30dayで6万円程度）</p>
-
-<pre><code>## Redshiftの性能は？
-
-他と比較するとSEの寿命が縮まるので・・・
-
-### 巨大テーブルからの検索処理
-
-1.5TBくらいのデータの検索結果  500億件
-8XL 2node 43.5sec
-8XL 4node 27.8sec
-8XL 8node 19.8sec
-
-線形に性能が向上しているのに驚いた
-
-### データロードのスピード 500億件
-
-8XL 2node 2:54sec
-8XL 4node 1:37
-8XL 8node 0:46
-
-### 1.2億件の検索結果
-
-8XL 2node 3.30 sec
-8XL 4node 1.40 sec
-8XL 8node 1.80 sec
-
-## バッチ処理は？
-
-EMRとの比較
-1.5TB, 500億件
-
-EMR 29min
-Redshift 17min
-
-EMR 71min
-Redshift 5min
-
-チューニングのポイント
-キー(index)
-
-distribution keyに応じてスライスに配置される
-sort keyをもとにレコードがソートされる
-
-### チューニング効果
-* 1.2億件
-
-指定無しは1.8秒
-指定ありは1秒
-
-* バッチ処理
-
-指定あり：24min
-指定無し：16min
-
-sort keyを入れるとロードは遅くなるので注意
-
-### コスト:w
-128coe 960gb 128tb storage
-構築費はほぼ不要、維持管理のSEも不要、センター費用は不要
-
-### 注意点は？
-不得意なデータ形式もある
-EMRで前処理
-
-簡単につくれてしまうため、統制のきいていないシステムの乱立に注意
-
-### まとめ
-
-* 性能は線形にスケール
-* バッチ処理も得意
-* チューニングは新しい概念で
-* 利用料課金はメリット大
-* 注意点もある
-</code></pre>
-
-<p>次は野村総研の方からの検証結果報告です。データのSELECTが早いのは確かだと思います。ただ、セッションでも言及されているように、「不得意なデータ形式もある」ということで、結局のところRedshiftのポテンシャルをフルに引き出して使いこなすには、時間とともに溜まるノウハウの蓄積が欠かせない気がします。</p>
-
-<p>データのロードについても同様で、<a href="http://www.hapyrus.com/products/flydata-for-redshift">FlyData for Amazon Redshift</a>というサービスがあるくらい、Redshiftに適切な速度で要領よくデータをアップロードするのは難しいという印象です。このへんも各所で検証が進むにつれて、うまいやり方というのが見いだされてくるのかなと思います。</p>
 ]]></content>
   </entry>
   

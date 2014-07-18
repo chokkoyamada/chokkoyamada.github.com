@@ -92,15 +92,21 @@
         <loc>
             http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/
         </loc>
-        <lastmod>2014-07-18T14:12:14+09:00</lastmod>
+        <lastmod>2014-07-18T14:15:23+09:00</lastmod>
+    </url>
+    <url>
+        <loc>
+            http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/
+        </loc>
+        <lastmod>2014-07-18T14:52:47+09:00</lastmod>
     </url>
     <url>
         <loc>http://chokkoyamada.github.io/blog/archives/</loc>
-        <lastmod>2014-07-18T14:12:14+09:00</lastmod>
+        <lastmod>2014-07-18T14:52:47+09:00</lastmod>
     </url>
     <url>
         <loc>http://chokkoyamada.github.io/</loc>
-        <lastmod>2014-07-18T14:12:14+09:00</lastmod>
+        <lastmod>2014-07-18T14:52:47+09:00</lastmod>
     </url>
     <url>
         <loc>http://chokkoyamada.github.io/robots.txt</loc>

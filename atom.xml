@@ -4,7 +4,7 @@
   <title><![CDATA[Continuous Ops]]></title>
   <link href="http://chokkoyamada.github.io/atom.xml" rel="self"/>
   <link href="http://chokkoyamada.github.io/"/>
-  <updated>2014-07-18T14:12:25+09:00</updated>
+  <updated>2014-07-18T14:59:53+09:00</updated>
   <id>http://chokkoyamada.github.io/</id>
   <author>
     <name><![CDATA[Naoyuki Yamada]]></name>
@@ -14,7 +14,119 @@
 
   
   <entry>
-    <title type="html"><![CDATA[AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践]]></title>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: Amazon Kinesisを用いたリアルタイムのゲーム分析システムと、AWS ElasticBeanstalk＆Amazon DynamoDB を活用したゲーム運営]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis/"/>
+    <updated>2014-07-18T14:15:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-dynamo-kinesis</id>
+    <content type="html"><![CDATA[<p>Ripplationという会社の安藤さんと立本さんによるゲーム運営にAWSのマネージドサービスを活用する話です。
+最近のゲーム界隈にうといのですが、「騎士とドラゴン」が代表的タイトルですかね。</p>
+
+<p>とことん運用を楽にする側に振り切っているのは清々とします。</p>
+
+<p>Kinesis &ndash; ElasticBeansTalk &ndash; S3の組み合わせ方がかなり独特で、二段階に処理を分けるというのはとてもおもしろいと思いました</p>
+
+<ul>
+<li>いかにして最小人数でサーバー側の開発を行うか</li>
+<li><p>以下にしてサーバーコストを下げるか</p></li>
+<li><p>スケール・耐障害の自動化</p></li>
+<li>監視システムも簡単にしたい</li>
+</ul>
+
+
+<p>なので、ElasticBeansTalk + DynamoDBのみで構成することにした</p>
+
+<h2>AWSを使ってみてわかったこと</h2>
+
+<ul>
+<li>すぐ始められる</li>
+<li>アプリをサーバーにデプロイするまでに流れを作るのが簡単</li>
+<li>1から整える必要がない</li>
+<li>思った以上に実用に耐えられる</li>
+<li>ほとんど放置が可能: 最近サーバーをコンソールで調整したくらい</li>
+</ul>
+
+
+<h3>ElasticBeansTalkの注意点</h3>
+
+<ul>
+<li>デプロイ時に一瞬アクセスできないことがある: 気にせずデプロイしている。エラー処理はアプリケーション側で行っている</li>
+<li>オートスケーリングの調整はきっちりしておく</li>
+</ul>
+
+
+<h3>DynamoDBの注意点</h3>
+
+<ul>
+<li>社内にいるDB技術者の文句やいちゃもんに負けない　問題が出たら後付けで</li>
+<li>バッチ処理をしっかり使う、リトライも行う</li>
+<li>スループットの限界値は急激に変化させられない: 急激な書き込みは読み込みはできない</li>
+<li>バックアップするかどうか　リストアする場合ってどんな状況だろうか</li>
+</ul>
+
+
+<h3>汎用化なんて考えたらダメ</h3>
+
+<ul>
+<li>AWSを使い倒さないと真の良さは発揮されない</li>
+<li>そんなにどれでも動く仕組みって重要なんでしょうか。</li>
+</ul>
+
+
+<h2>ログデータの収集・集計</h2>
+
+<ul>
+<li>結局、最初はDynamoDBだけでなんとかした</li>
+</ul>
+
+
+<h2>KinesisとBigData</h2>
+
+<h3>ビッグデータとはなにか</h3>
+
+<p>単体ではよくわからないデータこそがビッグデータ</p>
+
+<p>達成課題：毎秒10万件のデータを収集する</p>
+
+<p>Linux
+TCP
+28000個ぐらいのポート
+TIMEWAIT 60sec
+実測値への縫製係数: 0.6
+1server 282 req/sec</p>
+
+<p>チューニング後：</p>
+
+<p>Linux
+TCP
+64000 Port
+TIMEWAIT 10sec
+1server 4000req/sec</p>
+
+<p>26台あれば　 3870x26=100620req/sec</p>
+
+<p>ただ、これをどうやって集める？ 一般的なサーバーでつくろうとするとdisaster recovery含めて大変</p>
+
+<p>Kinesisならシャードを100個立てれば終了</p>
+
+<p>Grasslandというツールを開発中: データを分析して</p>
+
+<h2>GrasslandでのKinesisの使いどころ</h2>
+
+<p>1 クライアントからはKinesisにデータを直接投げる
+2 ElasticBeansTalkはS3にキャシュを保存
+3 S3はcacheの解析リクエストをKinesisに返す
+4 Kinesis &ndash;> EBT に解析リクエストを投げる
+5 S3 &ndash;> EBT はキャッシュを返す
+6 EBT &ndash;> S3 解析結果を渡す</p>
+
+<p>セキュリティを担保できる工夫はいろいろできる</p>
+
+<p>Kinesisは世界のデータを集めるように作られている</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[AWS Summit Tokyo 2014: AWS + Windows(C#)で構築する.NET最先端技術によるハイパフォーマンスウェブアプリケーション開発実践]]></title>
     <link href="http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows/"/>
     <updated>2014-07-18T13:19:00+09:00</updated>
     <id>http://chokkoyamada.github.io/blog/2014/07/18/aws-summit-tokyo-2014-grani-windows</id>
@@ -1182,6 +1294,15 @@ Railsだと有名なのはHerokuですが、PostgreSQLなのがネックだし�
 <p>オーケストレーションツール(Orchestration Tool)といわれるツールです。</p>
 
 <p>私はUbuntuは使っていないのですが、chefのcookbookがUbuntuベースで作られていることが多いので、Ubuntuを使えば簡単なのにと思うことはたまにあります。その話を振ってみたところ、Jujuの話がでてきました。オーケストレーションツールはchefのような構成管理ツールと同等には重要な存在になると思うのですが、まだ定番といえるものが出てきていません。今後ぜひ調べてみたいと思います。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[逆引きFabric(1)]]></title>
+    <link href="http://chokkoyamada.github.io/blog/2013/06/21/fabric-reverse-dictionary-1/"/>
+    <updated>2013-06-21T08:33:00+09:00</updated>
+    <id>http://chokkoyamada.github.io/blog/2013/06/21/fabric-reverse-dictionary-1</id>
+    <content type="html"><![CDATA[<h2>環境を整える</h2>
 ]]></content>
   </entry>
   
@@ -3232,292 +3353,6 @@ context.xmlの配置について分かったこと． &ndash; 小さな星がほ
 <p><a href="https://github.com/taos/graphite-chef-centos/pull/1">Pull Request</a>もしておきました。</p>
 
 <p>次はGraphiteを使い倒していきます。</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[BerkshelfとVagrantの連携(1)]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2013/05/19/berkshelf-vagrant/"/>
-    <updated>2013-05-19T23:14:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2013/05/19/berkshelf-vagrant</id>
-    <content type="html"><![CDATA[<h2>他所にあるchefのcookbookを気軽にインポートしたい</h2>
-
-<p>chefのcookbookを依存管理してくれるBerkshelfと、Mac上のVM実行補助のライブラリであるVagrantとの連携を試してみます。</p>
-
-<p>私はAWSでchef-soloを使ったインフラの管理をしているのですが、開発の全てをEC2上でやろうとするとどうしてもインスタンスの起動・削除にお金がかさんでしまうので、開発はローカル環境で進めたいと思っています。</p>
-
-<p>AWS上にproduction環境を置く場合、どうしてもAWS上でのテスト環境やステージング環境のようなものは必要になってきますが、その前段階の開発作業はローカルのLinux VM上でできないかと試行錯誤してきました。</p>
-
-<p>その解決策として使ってきたのがVagrantです。VagrantはVirtual Boxをコマンドライン＋設定ファイルで扱えるようにしたツールで、chefやpuppetとの連携機能も備えているため、chefのcookbookのテストを気軽に試すことができます。Vagrantは起動も速いので、開発とテストにもってこいです。</p>
-
-<p>さらに最近やりたいと感じていたこととして、「GitHub上にある他ユーザーのcookbookをインポートして気軽に使いたい」というのがありました。</p>
-
-<p>例えばGraphiteやZabbixやHadoopなどといったような、セットアップが多少面倒くさいツールをセットアップしたいときに、他のユーザーのcookbookを使ってさくっとprovisionできたら非常に楽だと思ったのです。cookbookにはセットアップ手順が整理されて書いてあるので、必要なものを素早く把握することもでき一石二鳥です。</p>
-
-<p>そのニーズを満たしてくれるライブラリとして、Berkshelfというのが便利、と同僚の神から教えてもらったので試してみました。今回は必要最低限の設定を行います。</p>
-
-<h2>VagrantとBerkshelfのセットアップ</h2>
-
-<p>BerkshelfとVagrantの連携機能を使うためには公式サイトにある最新版を使う必要がありました。現時点で私が設定した環境のバージョンは次の通りです。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>ᐅ ruby -v
-</span><span class='line'>ruby 1.9.3p194 (2012-04-20 revision 35410) [x86_64-darwin11.4.0]
-</span><span class='line'>
-</span><span class='line'>ᐅ vagrant --version
-</span><span class='line'>Vagrant version 1.2.2
-</span><span class='line'>
-</span><span class='line'>ᐅ berks --version
-</span><span class='line'>Berkshelf (1.4.4)</span></code></pre></td></tr></table></div></figure>
-
-
-<p>RubyはRVMを使っています。
-Vagrantはgemだと古いバージョンだったので、公式サイトのdmgファイルからインストールしました。Berkshelfは<code>gem install berkshelf</code>でインストールしました。</p>
-
-<p>Vagrantのboxは<a href="http://www.vagrantbox.es">CentOS 6.3 x86_64 + Chef 10.14.2 + VirtualBox 4.1.22 (with guest additions)</a>を使いました。</p>
-
-<p>まずBerksfileを設定します。<a href="http://berkshelf.com">Berkshelfの公式サイトの例</a>にあるサンプルを試してみます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">site</span> <span class="ss">:opscode</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">cookbook</span> <span class="s1">&#39;mysql&#39;</span>
-</span><span class='line'><span class="n">cookbook</span> <span class="s1">&#39;nginx&#39;</span><span class="p">,</span> <span class="s1">&#39;~&gt; 0.101.5&#39;</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>この場合、<a href="https://github.com/opscode-cookbooks/mysql">MySQLはこれ</a>と<a href="https://github.com/opscode-cookbooks/nginx">Nginxはこれ</a>が使われるみたいです。</p>
-
-<p>次にVagrantfileを書きます。こちらは<code>vagrant init centos63chef</code>で自動生成してそこからカスタマイズしていきます。</p>
-
-<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="no">Vagrant</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">config</span><span class="o">|</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">box</span> <span class="o">=</span> <span class="s2">&quot;centos63chef&quot;</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">synced_folder</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;/vagrant_data&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="kp">true</span>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">berkshelf</span><span class="o">.</span><span class="n">berksfile_path</span> <span class="o">=</span> <span class="s2">&quot;Berksfile&quot;</span>
-</span><span class='line'>
-</span><span class='line'>  <span class="n">config</span><span class="o">.</span><span class="n">vm</span><span class="o">.</span><span class="n">provision</span> <span class="ss">:chef_solo</span> <span class="k">do</span> <span class="o">|</span><span class="n">chef</span><span class="o">|</span>
-</span><span class='line'>     <span class="n">chef</span><span class="o">.</span><span class="n">add_recipe</span> <span class="s2">&quot;mysql&quot;</span>
-</span><span class='line'>     <span class="n">chef</span><span class="o">.</span><span class="n">add_recipe</span> <span class="s2">&quot;nginx&quot;</span>
-</span><span class='line'>  <span class="k">end</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>これで動きました。</p>
-
-<p>あとは<code>vagrnat up</code>でVMの作成とプロビジョンが行われます。今回は、mysqlクライアントとnginxパッケージとデーモンがインストールされたはずです。</p>
-
-<h2>serverspecで確認</h2>
-
-<p>serverspecを使ってテストしてみます。serverspecは今回の主題ではないので詳細はすっ飛ばしますがmysqlとnginxがvagrantサーバーにきちんと入っているかどうかを調べています。</p>
-
-<figure class='code'><figcaption><span>spec/vagrant/nginx_spec.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;spec_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="n">package</span><span class="p">(</span><span class="s1">&#39;nginx&#39;</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_installed</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="n">service</span><span class="p">(</span><span class="s1">&#39;nginx&#39;</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_running</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="n">port</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_listening</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="n">file</span><span class="p">(</span><span class="s1">&#39;/etc/nginx/nginx.conf&#39;</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_file</span> <span class="p">}</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">contain</span> <span class="s2">&quot;pid&quot;</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span>spec/vagrant/mysql_spec.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="nb">require</span> <span class="s1">&#39;spec_helper&#39;</span>
-</span><span class='line'>
-</span><span class='line'><span class="n">describe</span> <span class="n">package</span><span class="p">(</span><span class="s1">&#39;mysql&#39;</span><span class="p">)</span> <span class="k">do</span>
-</span><span class='line'>  <span class="n">it</span> <span class="p">{</span> <span class="n">should</span> <span class="n">be_installed</span> <span class="p">}</span>
-</span><span class='line'><span class="k">end</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-
-
-<figure class='code'><figcaption><span>spec/vagrant/mysql_spec.rb</span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="err">ᐅ</span> <span class="n">rake</span> <span class="n">spec</span>
-</span><span class='line'><span class="sr">/Users/xxxx</span><span class="o">/.</span><span class="n">rvm</span><span class="o">/</span><span class="n">rubies</span><span class="o">/</span><span class="n">ruby</span><span class="o">-</span><span class="mi">1</span><span class="o">.</span><span class="mi">9</span><span class="o">.</span><span class="mi">3</span><span class="o">-</span><span class="n">p194</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">ruby</span> <span class="o">-</span><span class="n">S</span> <span class="n">rspec</span> <span class="n">spec</span><span class="o">/</span><span class="n">vagrant</span><span class="o">/</span><span class="n">mysql_spec</span><span class="o">.</span><span class="n">rb</span> <span class="n">spec</span><span class="o">/</span><span class="n">vagrant</span><span class="o">/</span><span class="n">nginx_spec</span><span class="o">.</span><span class="n">rb</span>
-</span><span class='line'><span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">.</span><span class="o">.</span><span class="n">.</span>
-</span><span class='line'>
-</span><span class='line'><span class="no">Finished</span> <span class="k">in</span> <span class="mi">0</span><span class="o">.</span><span class="mi">18744</span> <span class="n">seconds</span>
-</span><span class='line'><span class="mi">6</span> <span class="n">examples</span><span class="p">,</span> <span class="mi">0</span> <span class="n">failures</span>
-</span></code></pre></td></tr></table></div></figure>
-
-
-<p>serverspecのテストが通りました。</p>
-
-<p>これで外部のcookbookを使う準備ができました。次回は他のもうちょっと複雑なcookbookを試したり、パラメータを渡したりといったことが問題なくできるかどうかをやっていきます。　</p>
-]]></content>
-  </entry>
-  
-  <entry>
-    <title type="html"><![CDATA[Octopressを始めました]]></title>
-    <link href="http://chokkoyamada.github.io/blog/2013/05/19/post-from-multiple-machine/"/>
-    <updated>2013-05-19T19:09:00+09:00</updated>
-    <id>http://chokkoyamada.github.io/blog/2013/05/19/post-from-multiple-machine</id>
-    <content type="html"><![CDATA[<h2>Octopressの気に入ったところ</h2>
-
-<p>GitHub Pagesを使ってOctopressを始めてみました。ずっとwordpressを使っていたのですが、次の3点が気にいって使ってみようと思い立ちました。</p>
-
-<ul>
-<li>静的HTMLでサイトが生成される</li>
-<li>Git(Hub)ベースなので履歴が残る</li>
-<li>Pushしておけば、必ずGitHubにバックアップがある</li>
-<li>vimとmarkdownで書ける</li>
-</ul>
-
-
-<p>静的に生成できればS3やCloudFrontに置くことで高速化もできるし、サーバーに負荷がかかりにくいです。</p>
-
-<p>WordpressはMySQLに記事データが入っていましたが、Octopressは生のテキストデータとしてデータが残っています。Markdownのテキストデータとしてデータが残っているというのは気分的に安心感があります。
-HTML以外の他のデータフォーマットへのエクスポートもしやすいかと思いました。</p>
-
-<p>最近、仕事でもプライベートでもGitHubをよく使っているので、セットアップも手こずらないだろうという見込みもありました。</p>
-
-<p>vimで書けてそのままアップできるのも気持ちいいです。Markdownはvimとの相性も良いです。<a href="https://github.com/plasticboy/vim-markdown">vim-markdown</a> を組み合わせて使っています。</p>
-
-<h2>日本語を使うところではまる</h2>
-
-<p>日本語をタイトルや本文に入れて投稿しようとしたところ、</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>➜  octopress git:(source) be rake generate
-</span><span class='line'>
-</span><span class='line'>## Generating Site with Jekyll
-</span><span class='line'>identical source/stylesheets/screen.css 
-</span><span class='line'>Configuration from /Users/caaios5/Documents/git/octopress/_config.yml
-</span><span class='line'>Building site: source -&gt; public
-</span><span class='line'>
-</span><span class='line'>
-</span><span class='line'>ERROR: YOUR SITE COULD NOT BE BUILT:
-</span><span class='line'>------------------------------------
-</span><span class='line'>"\xE3" on US-ASCII in /Users/caaios5/Documents/git/octopress/source/_posts/2013-05-19-hello.markdown</span></code></pre></td></tr></table></div></figure>
-
-
-<p>という感じでなぜか記事をgenerateできず。文字コードの問題だと分かったので、ググって環境変数を設定したらいけました。</p>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>export LC_CTYPE=en_US.UTF-8 
-</span><span class='line'>export LANG=en_US.UTF-8</span></code></pre></td></tr></table></div></figure>
-
-
-<p>これを<code>~/.zshrc</code>に記載します(使ってるシェルに合わせて変更してください)</p>
-
-<h2>zshだと<code>rake new_post["hoge"]</code>とは書けず、<code>rake new_post\["hoge"\]</code>とエスケープする必要がある</h2>
-
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>➜  octopress git:(source) be rake new_post["hoge"]
-</span><span class='line'>zsh: no matches found: new_post[hoge]</span></code></pre></td></tr></table></div></figure>
-
-
-<p>これはOctopress関係ないのですが、rakeコマンドが通らないので一瞬悩みました。bashならこの問題はありません。
-またはrake &ldquo;new_post[hoge]&#8221;でもいけます。</p>
-
-<h2>Octopressレポジトリのブランチ構成</h2>
-
-<p>Octopressのレポジトリは、&#8221;master&#8221;と&#8221;source&#8221;という2つのブランチを使いわけた構成になっています。</p>
-
-<ul>
-<li>master</li>
-</ul>
-
-
-<p><code>rake generate</code>で生成された静的なHTMLコンテンツが置かれている。通常こちらを直接更新はしない。</p>
-
-<ul>
-<li>source</li>
-</ul>
-
-
-<p>普段の作業ディレクトリ。<code>rake new_post['hoge']</code>などを実行して投稿を作るのもこちら。</p>
-
-<p>「masterが公開する部分」、「sourceが管理側」といったイメージです。</p>
-
-<p>なので、<code>rake deploy</code>では実質的にmasterがpushされます(実際、Rakefileの中はそのようになっています)、<code>git push origin source</code>で管理側をpushしておけば、<code>git clone</code>して<code>git checkout source</code>で別のマシンから作業の続きができます。</p>
-
-<p>参考：</p>
-
-<p><a href="http://tokkonopapa.github.io/blog/2011/12/30/octopress-on-github-and-bitbucket/">http://tokkonopapa.github.io/blog/2011/12/30/octopress-on-github-and-bitbucket/</a></p>
-
-<p>記事を書き始めるのにはここが参考になりました。</p>
-
-<p><a href="http://blog.zerosharp.com/clone-your-octopress-to-blog-from-two-places/">http://blog.zerosharp.com/clone-your-octopress-to-blog-from-two-places/</a></p>
-
-<p>文字コードの問題は環境変数を設定すると解決するのはここを読んで気づきました。</p>
 ]]></content>
   </entry>
   
